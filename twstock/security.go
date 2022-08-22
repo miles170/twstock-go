@@ -142,6 +142,7 @@ func (s *SecurityService) DownloadTwseDelisted() ([]DelistedSecurity, error) {
 	return delistedSecurities, nil
 }
 
+// 從證券櫃檯買賣中心下載下櫃的國際證券資料
 func (s *SecurityService) DownloadTpexDelisted(page int) ([]DelistedSecurity, error) {
 	url, _ := s.client.tpexBaseURL.Parse(tpexDelistedSecuritiesPath)
 	req, _ := s.client.NewRequest("POST", url.String(), fmt.Sprintf("stk_code=&select_year=ALL&topage=%d&DELIST_REASON=-1", page+1))

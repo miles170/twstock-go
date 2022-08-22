@@ -382,6 +382,7 @@ func parseRealtimeData(data realtimeData) (RealtimeQuote, error) {
 	return quote, nil
 }
 
+// 從台灣證卷交易所下載即時個股成交資訊
 func (s *QuoteService) Realtime(codes []string) (map[string]RealtimeQuote, error) {
 	for i, v := range codes {
 		//nolint:typecheck
