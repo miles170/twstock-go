@@ -68,7 +68,7 @@ func (s *SecurityService) download(url string, t transform.Transformer) ([]Secur
 			ipo := strings.TrimSpace(elements.Eq(2).Text())
 			var market Market
 			marketText := strings.TrimSpace(elements.Eq(3).Text())
-			if marketText == "上市" {
+			if marketText == "上市" || marketText == "上市臺灣創新板" {
 				market = TWSE
 			} else if marketText == "上櫃" {
 				market = TPEx
