@@ -16,6 +16,7 @@ const (
 	Version = "1.0.0"
 
 	defaultTwseBaseURL     = "https://www.twse.com.tw"
+	defaultTpexBaseURL     = "https://www.tpex.org.tw"
 	defaultIsinTwseBaseURL = "https://isin.twse.com.tw"
 )
 
@@ -26,6 +27,9 @@ type Client struct {
 
 	twseBaseURL *url.URL
 	twseDecoder transform.Transformer
+
+	tpexBaseURL *url.URL
+	tpexDecoder transform.Transformer
 
 	isinTwseBaseURL *url.URL
 	isinTwseDecoder transform.Transformer
@@ -38,12 +42,16 @@ type Client struct {
 func NewClient() *Client {
 	httpClient := &http.Client{}
 	twseBaseURL, _ := url.Parse(defaultTwseBaseURL)
+	tpexBaseURL, _ := url.Parse(defaultTpexBaseURL)
 	isinTwseBaseURL, _ := url.Parse(defaultIsinTwseBaseURL)
 	c := &Client{
 		client: httpClient,
 
 		twseBaseURL: twseBaseURL,
 		twseDecoder: transform.Nop,
+
+		tpexBaseURL: tpexBaseURL,
+		tpexDecoder: transform.Nop,
 
 		isinTwseBaseURL: isinTwseBaseURL,
 		isinTwseDecoder: traditionalchinese.Big5.NewDecoder(),

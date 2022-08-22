@@ -25,6 +25,7 @@ func setup() (client *Client, mux *http.ServeMux, teardown func()) {
 	client = NewClient()
 	url, _ := url.Parse(server.URL + "/")
 	client.twseBaseURL = url
+	client.tpexBaseURL = url
 	client.isinTwseBaseURL = url
 
 	return client, mux, server.Close

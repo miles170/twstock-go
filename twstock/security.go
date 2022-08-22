@@ -1,6 +1,7 @@
 package twstock
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -63,10 +64,10 @@ func (s *SecurityService) download(url string, t transform.Transformer) ([]Secur
 			codeAndName := strings.Fields(elements.Eq(0).Text())
 			code := codeAndName[0]
 			name := codeAndName[1]
-			isin := elements.Eq(1).Text()
-			ipo := elements.Eq(2).Text()
+			isin := strings.TrimSpace(elements.Eq(1).Text())
+			ipo := strings.TrimSpace(elements.Eq(2).Text())
 			var market Market
-			marketText := elements.Eq(3).Text()
+			marketText := strings.TrimSpace(elements.Eq(3).Text())
 			if marketText == "上市" {
 				market = TWSE
 			} else if marketText == "上櫃" {
@@ -74,9 +75,9 @@ func (s *SecurityService) download(url string, t transform.Transformer) ([]Secur
 			} else {
 				return
 			}
-			industry := elements.Eq(4).Text()
-			cfi := elements.Eq(5).Text()
-			remark := elements.Eq(6).Text()
+			industry := strings.TrimSpace(elements.Eq(4).Text())
+			cfi := strings.TrimSpace(elements.Eq(5).Text())
+			remark := strings.TrimSpace(elements.Eq(6).Text())
 			securities = append(securities,
 				Security{securityType, code, name, isin, ipo, market, industry, cfi, remark})
 		}
@@ -120,9 +121,29 @@ func (s *SecurityService) DownloadTwseDelisted() ([]DelistedSecurity, error) {
 		if len(elements.Nodes) != 3 {
 			return
 		}
-		name := elements.Eq(1).Text()
-		code := elements.Eq(2).Text()
+		name := strings.TrimSpace(elements.Eq(1).Text())
+		code := strings.TrimSpace(elements.Eq(2).Text())
 		delistedSecurities = append(delistedSecurities, DelistedSecurity{code, name, TWSE})
+	})
+	return delistedSecurities, nil
+}
+
+func (s *SecurityService) DownloadTpexDelisted(page int) ([]DelistedSecurity, error) {
+	url, _ := s.client.tpexBaseURL.Parse("/web/regular_emerging/deListed/de-listed_companies.php")
+	req, _ := s.client.NewRequest("POST", url.String(), fmt.Sprintf("stk_code=&select_year=ALL&topage=%d&DELIST_REASON=-1", page+1))
+	doc, err := s.client.DoTransformToDocument(req, s.client.twseDecoder)
+	if err != nil {
+		return nil, err
+	}
+	delistedSecurities := []DelistedSecurity{}
+	doc.Find("table").First().Find("tr").Each(func(i int, s *goquery.Selection) {
+		elements := s.Find("td")
+		if len(elements.Nodes) != 4 {
+			return
+		}
+		code := strings.TrimSpace(elements.Eq(0).Text())
+		name := strings.TrimSpace(elements.Eq(1).Find("a").Text())
+		delistedSecurities = append(delistedSecurities, DelistedSecurity{code, name, TPEx})
 	})
 	return delistedSecurities, nil
 }
