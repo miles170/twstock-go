@@ -162,13 +162,9 @@ func TestSecurityService_DownloadBadContent(t *testing.T) {
 		}
 	})
 
-	securities, err := client.Security.Download()
-	if err != nil {
-		t.Errorf("Security.Download returned error: %v", err)
-	}
-	want := []Security{}
-	if !cmp.Equal(securities, want) {
-		t.Errorf("Security.Download returned %v, want %v", securities, want)
+	_, err := client.Security.Download()
+	if err == nil {
+		t.Error("Security.Download returned nil; expected error")
 	}
 }
 
@@ -507,13 +503,9 @@ func TestSecurityService_DownloadTwseDelistedBadContent(t *testing.T) {
 		fmt.Fprint(w, raw)
 	})
 
-	securities, err := client.Security.DownloadTwseDelisted()
-	if err != nil {
-		t.Errorf("Security.DownloadTwseDelisted returned error: %v", err)
-	}
-	want := []DelistedSecurity{}
-	if !cmp.Equal(securities, want) {
-		t.Errorf("Security.DownloadTwseDelisted returned %v, want %v", securities, want)
+	_, err := client.Security.DownloadTwseDelisted()
+	if err == nil {
+		t.Error("Security.DownloadTwseDelisted returned nil; expected error")
 	}
 }
 
@@ -1067,13 +1059,9 @@ func TestSecurityService_DownloadTpexDelistedBadContent(t *testing.T) {
 		fmt.Fprint(w, raw)
 	})
 
-	securities, err := client.Security.DownloadTpexDelisted(0)
-	if err != nil {
-		t.Errorf("Security.DownloadTpexDelisted returned error: %v", err)
-	}
-	want := []DelistedSecurity{}
-	if !cmp.Equal(securities, want) {
-		t.Errorf("Security.DownloadTpexDelisted returned %v, want %v", securities, want)
+	_, err := client.Security.DownloadTpexDelisted(0)
+	if err == nil {
+		t.Error("Security.DownloadTpexDelisted returned nil; expected error")
 	}
 }
 

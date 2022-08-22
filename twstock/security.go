@@ -50,10 +50,10 @@ func (s *SecurityService) download(url string, t transform.Transformer) ([]Secur
 	}
 	securities := []Security{}
 	var securityType = ""
-	doc.Find("tr").Each(func(i int, s *goquery.Selection) {
+	doc.Find("tr").EachWithBreak(func(i int, s *goquery.Selection) bool {
 		// 跳過標題
 		if i == 0 {
-			return
+			return true
 		}
 		elements := s.Find("td")
 		if len(elements.Nodes) == 1 {
@@ -73,7 +73,8 @@ func (s *SecurityService) download(url string, t transform.Transformer) ([]Secur
 			} else if marketText == "上櫃" {
 				market = TPEx
 			} else {
-				return
+				err = fmt.Errorf("failed parsing security market: %s", marketText)
+				return false
 			}
 			industry := strings.TrimSpace(elements.Eq(4).Text())
 			cfi := strings.TrimSpace(elements.Eq(5).Text())
@@ -81,7 +82,11 @@ func (s *SecurityService) download(url string, t transform.Transformer) ([]Secur
 			securities = append(securities,
 				Security{securityType, code, name, isin, ipo, market, industry, cfi, remark})
 		}
+		return true
 	})
+	if err != nil {
+		return nil, err
+	}
 	return securities, nil
 }
 
@@ -120,15 +125,20 @@ func (s *SecurityService) DownloadTwseDelisted() ([]DelistedSecurity, error) {
 		return nil, err
 	}
 	delistedSecurities := []DelistedSecurity{}
-	doc.Find("tbody tr").Each(func(i int, s *goquery.Selection) {
+	doc.Find("tbody tr").EachWithBreak(func(i int, s *goquery.Selection) bool {
 		elements := s.Find("td")
 		if len(elements.Nodes) != 3 {
-			return
+			err = fmt.Errorf("failed parsing security fields")
+			return false
 		}
 		name := strings.TrimSpace(elements.Eq(1).Text())
 		code := strings.TrimSpace(elements.Eq(2).Text())
 		delistedSecurities = append(delistedSecurities, DelistedSecurity{code, name, TWSE})
+		return true
 	})
+	if err != nil {
+		return nil, err
+	}
 	return delistedSecurities, nil
 }
 
@@ -140,14 +150,24 @@ func (s *SecurityService) DownloadTpexDelisted(page int) ([]DelistedSecurity, er
 		return nil, err
 	}
 	delistedSecurities := []DelistedSecurity{}
-	doc.Find("table").First().Find("tr").Each(func(i int, s *goquery.Selection) {
+	doc.Find("table").First().Find("tr").EachWithBreak(func(i int, s *goquery.Selection) bool {
 		elements := s.Find("td")
-		if len(elements.Nodes) != 4 {
-			return
+		length := len(elements.Nodes)
+		// 標題
+		if length == 3 {
+			return true
+		}
+		if length != 4 {
+			err = fmt.Errorf("failed parsing security fields")
+			return false
 		}
 		code := strings.TrimSpace(elements.Eq(0).Text())
 		name := strings.TrimSpace(elements.Eq(1).Find("a").Text())
 		delistedSecurities = append(delistedSecurities, DelistedSecurity{code, name, TPEx})
+		return true
 	})
+	if err != nil {
+		return nil, err
+	}
 	return delistedSecurities, nil
 }
