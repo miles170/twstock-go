@@ -16,7 +16,7 @@ type QuoteService struct {
 }
 
 type Quote struct {
-	Date   time.Time       // 本筆資料所屬日期
+	At     time.Time       // 本筆資料所屬日期
 	Open   decimal.Decimal // 開盤價
 	High   decimal.Decimal // 最高價
 	Low    decimal.Decimal // 最低價
@@ -113,7 +113,7 @@ func parse(data []string) (Quote, error) {
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote volume: %w", err)
 	}
-	quote.Date = date
+	quote.At = date
 	quote.Open = decimal.NewFromFloat(open)
 	quote.High = decimal.NewFromFloat(high)
 	quote.Low = decimal.NewFromFloat(low)

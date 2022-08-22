@@ -103,7 +103,7 @@ func TestQuoteService_DownloadTwse(t *testing.T) {
 	}
 	want := []Quote{
 		{
-			Date:   time.Date(2022, 8, 1, 0, 0, 0, 0, time.UTC),
+			At:     time.Date(2022, 8, 1, 0, 0, 0, 0, time.UTC),
 			Open:   decimal.NewFromFloat(506),
 			High:   decimal.NewFromFloat(508),
 			Low:    decimal.NewFromFloat(500),
@@ -111,7 +111,7 @@ func TestQuoteService_DownloadTwse(t *testing.T) {
 			Volume: 24991291,
 		},
 		{
-			Date:   time.Date(2022, 8, 2, 0, 0, 0, 0, time.UTC),
+			At:     time.Date(2022, 8, 2, 0, 0, 0, 0, time.UTC),
 			Open:   decimal.NewFromFloat(494),
 			High:   decimal.NewFromFloat(496),
 			Low:    decimal.NewFromFloat(488.50),
@@ -119,7 +119,7 @@ func TestQuoteService_DownloadTwse(t *testing.T) {
 			Volume: 42669591,
 		},
 		{
-			Date:   time.Date(2022, 8, 4, 0, 0, 0, 0, time.UTC),
+			At:     time.Date(2022, 8, 4, 0, 0, 0, 0, time.UTC),
 			Open:   decimal.NewFromFloat(499),
 			High:   decimal.NewFromFloat(503),
 			Low:    decimal.NewFromFloat(495),
@@ -127,7 +127,7 @@ func TestQuoteService_DownloadTwse(t *testing.T) {
 			Volume: 26589086,
 		},
 		{
-			Date:   time.Date(2022, 8, 5, 0, 0, 0, 0, time.UTC),
+			At:     time.Date(2022, 8, 5, 0, 0, 0, 0, time.UTC),
 			Open:   decimal.NewFromFloat(509),
 			High:   decimal.NewFromFloat(516),
 			Low:    decimal.NewFromFloat(507),
@@ -374,7 +374,7 @@ func TestQuoteService_DownloadTpex(t *testing.T) {
 	}
 	want := []Quote{
 		{
-			Date:   time.Date(2022, 8, 1, 0, 0, 0, 0, time.UTC),
+			At:     time.Date(2022, 8, 1, 0, 0, 0, 0, time.UTC),
 			Open:   decimal.NewFromFloat(127.5),
 			High:   decimal.NewFromFloat(128),
 			Low:    decimal.NewFromFloat(125.5),
@@ -382,7 +382,7 @@ func TestQuoteService_DownloadTpex(t *testing.T) {
 			Volume: 1328000,
 		},
 		{
-			Date:   time.Date(2022, 8, 2, 0, 0, 0, 0, time.UTC),
+			At:     time.Date(2022, 8, 2, 0, 0, 0, 0, time.UTC),
 			Open:   decimal.NewFromFloat(125),
 			High:   decimal.NewFromFloat(127),
 			Low:    decimal.NewFromFloat(123),
@@ -390,7 +390,7 @@ func TestQuoteService_DownloadTpex(t *testing.T) {
 			Volume: 1593000,
 		},
 		{
-			Date:   time.Date(2022, 8, 3, 0, 0, 0, 0, time.UTC),
+			At:     time.Date(2022, 8, 3, 0, 0, 0, 0, time.UTC),
 			Open:   decimal.NewFromFloat(124.5),
 			High:   decimal.NewFromFloat(127),
 			Low:    decimal.NewFromFloat(124),
@@ -398,7 +398,7 @@ func TestQuoteService_DownloadTpex(t *testing.T) {
 			Volume: 1603000,
 		},
 		{
-			Date:   time.Date(2022, 8, 5, 0, 0, 0, 0, time.UTC),
+			At:     time.Date(2022, 8, 5, 0, 0, 0, 0, time.UTC),
 			Open:   decimal.NewFromFloat(129.5),
 			High:   decimal.NewFromFloat(132),
 			Low:    decimal.NewFromFloat(126.5),
