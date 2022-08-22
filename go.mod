@@ -10,5 +10,7 @@ require (
 require (
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/google/go-cmp v0.5.8
+	github.com/google/go-querystring v1.1.0
+	github.com/shopspring/decimal v1.3.1
 	golang.org/x/net v0.0.0-20220812174116-3211cb980234 // indirect
 )

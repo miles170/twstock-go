@@ -55,6 +55,15 @@ func testURLParseError(t *testing.T, err error) {
 	}
 }
 
+func TestAddOptions_QueryValues(t *testing.T) {
+	if _, err := addOptions(nil, ""); err == nil {
+		t.Error("addOptions err = nil, want error")
+	}
+	if _, err := addOptions(nil, (*Client)(nil)); err != nil {
+		t.Errorf("addOptions returned %v, want nil", err)
+	}
+}
+
 func TestNewRequest_BadURL(t *testing.T) {
 	c := NewClient()
 	_, err := c.NewRequest("GET", ":", nil)
@@ -65,6 +74,25 @@ func TestNewRequest_BadMethod(t *testing.T) {
 	c := NewClient()
 	if _, err := c.NewRequest("BOGUS\nMETHOD", ".", nil); err == nil {
 		t.Fatal("NewRequest returned nil; expected error")
+	}
+}
+
+func TestDo_BadRequestURL(t *testing.T) {
+	client, _, teardown := setup()
+	defer teardown()
+
+	req, err := client.NewRequest("GET", "test-url", nil)
+	if err != nil {
+		t.Fatalf("client.NewRequest returned error: %v", err)
+	}
+
+	req.URL = nil
+	resp, err := client.Do(req, nil)
+	if resp != nil {
+		t.Errorf("client.Do resp = %#v, want nil", resp)
+	}
+	if err == nil {
+		t.Error("client.Do err = nil, want error")
 	}
 }
 

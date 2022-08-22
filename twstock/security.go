@@ -86,11 +86,15 @@ func (s *SecurityService) download(url string, t transform.Transformer) ([]Secur
 }
 
 const (
-	// 本國上市證券國際證券辨識號碼一覽表
+	// 上市證券國際證券辨識號碼一覽表
 	twseSecuritiesPath = "/isin/C_public.jsp?strMode=2"
+	// 終止上市公司
+	twseDelistedSecuritiesPath = "/zh/company/suspendListing"
 
-	// 本國上櫃證券國際證券辨識號碼一覽表
+	// 上櫃證券國際證券辨識號碼一覽表
 	tpexSecuritiesPath = "/isin/C_public.jsp?strMode=4"
+	// 終止上櫃公司
+	tpexDelistedSecuritiesPath = "/web/regular_emerging/deListed/de-listed_companies.php"
 )
 
 // 從台灣證卷交易所下載上市及上櫃國際證券資料
@@ -109,7 +113,7 @@ func (s *SecurityService) Download() ([]Security, error) {
 
 // 從台灣證卷交易所下載下市的國際證券資料
 func (s *SecurityService) DownloadTwseDelisted() ([]DelistedSecurity, error) {
-	url, _ := s.client.twseBaseURL.Parse("/zh/company/suspendListing")
+	url, _ := s.client.twseBaseURL.Parse(twseDelistedSecuritiesPath)
 	req, _ := s.client.NewRequest("POST", url.String(), "maxLength=-1&selectYear=&submitBtn=%E6%9F%A5%E8%A9%A2")
 	doc, err := s.client.DoTransformToDocument(req, s.client.twseDecoder)
 	if err != nil {
@@ -129,7 +133,7 @@ func (s *SecurityService) DownloadTwseDelisted() ([]DelistedSecurity, error) {
 }
 
 func (s *SecurityService) DownloadTpexDelisted(page int) ([]DelistedSecurity, error) {
-	url, _ := s.client.tpexBaseURL.Parse("/web/regular_emerging/deListed/de-listed_companies.php")
+	url, _ := s.client.tpexBaseURL.Parse(tpexDelistedSecuritiesPath)
 	req, _ := s.client.NewRequest("POST", url.String(), fmt.Sprintf("stk_code=&select_year=ALL&topage=%d&DELIST_REASON=-1", page+1))
 	doc, err := s.client.DoTransformToDocument(req, s.client.twseDecoder)
 	if err != nil {

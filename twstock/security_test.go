@@ -204,7 +204,7 @@ func TestSecurityService_DownloadTwseDelisted(t *testing.T) {
 	client, mux, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/zh/company/suspendListing", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(twseDelistedSecuritiesPath, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		raw := `
 <!doctype html>
@@ -372,7 +372,7 @@ func TestSecurityService_DownloadTwseDelistedBadContent(t *testing.T) {
 	client, mux, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/zh/company/suspendListing", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(twseDelistedSecuritiesPath, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		raw := `
 <!doctype html>
@@ -521,7 +521,7 @@ func TestSecurityService_DownloadTwseDelistedError(t *testing.T) {
 	client, mux, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/zh/company/suspendListing", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(twseDelistedSecuritiesPath, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		w.WriteHeader(http.StatusBadRequest)
 	})
@@ -544,7 +544,7 @@ func TestSecurityService_DownloadTpexDelisted(t *testing.T) {
 	client, mux, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/web/regular_emerging/deListed/de-listed_companies.php", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(tpexDelistedSecuritiesPath, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		raw := `
 <!DOCTYPE html>
@@ -845,7 +845,7 @@ func TestSecurityService_DownloadTpexDelistedBadContent(t *testing.T) {
 	client, mux, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/web/regular_emerging/deListed/de-listed_companies.php", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(tpexDelistedSecuritiesPath, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		raw := `
 <!DOCTYPE html>
@@ -1081,7 +1081,7 @@ func TestSecurityService_DownloadTpexDelistedError(t *testing.T) {
 	client, mux, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/web/regular_emerging/deListed/de-listed_companies.php", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(tpexDelistedSecuritiesPath, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		w.WriteHeader(http.StatusBadRequest)
 	})

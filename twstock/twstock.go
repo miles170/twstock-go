@@ -1,13 +1,16 @@
 package twstock
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/google/go-querystring/query"
 	"golang.org/x/text/encoding/traditionalchinese"
 	"golang.org/x/text/transform"
 )
@@ -36,6 +39,24 @@ type Client struct {
 
 	// Services used for talking to different parts of the API.
 	Security *SecurityService
+	Quote    *QuoteService
+}
+
+// addOptions adds the parameters in opts as URL query parameters to s. opts
+// must be a struct whose fields may contain "url" tags.
+func addOptions(u *url.URL, opts interface{}) (*url.URL, error) {
+	v := reflect.ValueOf(opts)
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		return u, nil
+	}
+
+	qs, err := query.Values(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	u.RawQuery = qs.Encode()
+	return u, nil
 }
 
 // NewClient returns a new Fugle API client.
@@ -57,6 +78,7 @@ func NewClient() *Client {
 		isinTwseDecoder: traditionalchinese.Big5.NewDecoder(),
 	}
 	c.Security = &SecurityService{client: c}
+	c.Quote = &QuoteService{client: c}
 	return c
 }
 
@@ -80,6 +102,26 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 	}
 
 	return req, nil
+}
+
+// Do sends an API request and returns the API response.
+func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	err = CheckResponse(resp)
+	if err != nil {
+		return resp, err
+	}
+
+	if v != nil {
+		err = json.NewDecoder(resp.Body).Decode(v)
+	}
+	return resp, err
 }
 
 // Do sends an API request and returns the goquery.Document.
