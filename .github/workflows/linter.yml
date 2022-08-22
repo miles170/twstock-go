@@ -16,7 +16,6 @@ jobs:
         # separately for each module in the repo.
         working-directory:
           - ""
-          - scripts
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v3
