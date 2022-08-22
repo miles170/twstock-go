@@ -24,6 +24,7 @@ func setup() (client *Client, mux *http.ServeMux, teardown func()) {
 	// configured to use test server.
 	client = NewClient()
 	url, _ := url.Parse(server.URL + "/")
+	client.twseBaseURL = url
 	client.isinTwseBaseURL = url
 
 	return client, mux, server.Close
@@ -55,13 +56,13 @@ func testURLParseError(t *testing.T, err error) {
 
 func TestNewRequest_BadURL(t *testing.T) {
 	c := NewClient()
-	_, err := c.NewRequest("GET", ":")
+	_, err := c.NewRequest("GET", ":", nil)
 	testURLParseError(t, err)
 }
 
 func TestNewRequest_BadMethod(t *testing.T) {
 	c := NewClient()
-	if _, err := c.NewRequest("BOGUS\nMETHOD", "."); err == nil {
+	if _, err := c.NewRequest("BOGUS\nMETHOD", ".", nil); err == nil {
 		t.Fatal("NewRequest returned nil; expected error")
 	}
 }
@@ -70,7 +71,7 @@ func TestDoTransformToDocument_BadRequestURL(t *testing.T) {
 	client, _, teardown := setup()
 	defer teardown()
 
-	req, err := client.NewRequest("GET", "test-url")
+	req, err := client.NewRequest("GET", "test-url", nil)
 	if err != nil {
 		t.Fatalf("client.NewRequest returned error: %v", err)
 	}
@@ -103,7 +104,7 @@ func TestDoTransformToDocument_BadDocument(t *testing.T) {
 		t.Fatalf("url.Parse returned error: %v", err)
 	}
 
-	req, err := client.NewRequest("GET", u.String())
+	req, err := client.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		t.Fatalf("client.NewRequest returned error: %v", err)
 	}

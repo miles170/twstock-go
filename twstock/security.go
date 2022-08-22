@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"golang.org/x/text/encoding/traditionalchinese"
 	"golang.org/x/text/transform"
 )
 
@@ -25,15 +24,22 @@ type Security struct {
 	Code     string // 有價證券代號
 	Name     string // 有價證券名稱
 	ISIN     string // 國際證卷辨識號碼
-	IPO      string // 上市日
+	IPO      string // 上市日 (格式為 2016/01/02)
 	Market   Market // 市場別
 	Industry string // 產業
 	CFI      string // CFICode
 	Remark   string // 備註
 }
 
+// 下市的有價證卷
+type DelistedSecurity struct {
+	Code   string // 有價證券代號
+	Name   string // 有價證券名稱
+	Market Market // 市場別
+}
+
 func (s *SecurityService) download(url string, t transform.Transformer) ([]Security, error) {
-	req, err := s.client.NewRequest("GET", url)
+	req, err := s.client.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -86,17 +92,37 @@ const (
 	tpexSecuritiesPath = "/isin/C_public.jsp?strMode=4"
 )
 
-// 從台灣證卷交易所下載國際證券資料
+// 從台灣證卷交易所下載上市及上櫃國際證券資料
 func (s *SecurityService) Download() ([]Security, error) {
 	securities := []Security{}
-	decoder := traditionalchinese.Big5.NewDecoder()
 	for _, path := range []string{twseSecuritiesPath, tpexSecuritiesPath} {
 		url, _ := s.client.isinTwseBaseURL.Parse(path)
-		s, err := s.download(url.String(), decoder)
+		s, err := s.download(url.String(), s.client.isinTwseDecoder)
 		if err != nil {
 			return nil, err
 		}
 		securities = append(securities, s...)
 	}
 	return securities, nil
+}
+
+// 從台灣證卷交易所下載下市的國際證券資料
+func (s *SecurityService) DownloadTwseDelisted() ([]DelistedSecurity, error) {
+	url, _ := s.client.twseBaseURL.Parse("/zh/company/suspendListing")
+	req, _ := s.client.NewRequest("POST", url.String(), "maxLength=-1&selectYear=&submitBtn=%E6%9F%A5%E8%A9%A2")
+	doc, err := s.client.DoTransformToDocument(req, s.client.twseDecoder)
+	if err != nil {
+		return nil, err
+	}
+	delistedSecurities := []DelistedSecurity{}
+	doc.Find("tbody tr").Each(func(i int, s *goquery.Selection) {
+		elements := s.Find("td")
+		if len(elements.Nodes) != 3 {
+			return
+		}
+		name := elements.Eq(1).Text()
+		code := elements.Eq(2).Text()
+		delistedSecurities = append(delistedSecurities, DelistedSecurity{code, name, TWSE})
+	})
+	return delistedSecurities, nil
 }

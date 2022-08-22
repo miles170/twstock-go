@@ -2,16 +2,20 @@ package twstock
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/text/encoding/traditionalchinese"
 	"golang.org/x/text/transform"
 )
 
 const (
 	Version = "1.0.0"
 
+	defaultTwseBaseURL     = "https://www.twse.com.tw"
 	defaultIsinTwseBaseURL = "https://isin.twse.com.tw"
 )
 
@@ -20,7 +24,11 @@ type Client struct {
 	// HTTP client used to communicate with the API.
 	client *http.Client
 
+	twseBaseURL *url.URL
+	twseDecoder transform.Transformer
+
 	isinTwseBaseURL *url.URL
+	isinTwseDecoder transform.Transformer
 
 	// Services used for talking to different parts of the API.
 	Security *SecurityService
@@ -29,21 +37,40 @@ type Client struct {
 // NewClient returns a new Fugle API client.
 func NewClient() *Client {
 	httpClient := &http.Client{}
+	twseBaseURL, _ := url.Parse(defaultTwseBaseURL)
 	isinTwseBaseURL, _ := url.Parse(defaultIsinTwseBaseURL)
 	c := &Client{
-		client:          httpClient,
+		client: httpClient,
+
+		twseBaseURL: twseBaseURL,
+		twseDecoder: transform.Nop,
+
 		isinTwseBaseURL: isinTwseBaseURL,
+		isinTwseDecoder: traditionalchinese.Big5.NewDecoder(),
 	}
 	c.Security = &SecurityService{client: c}
 	return c
 }
 
 // NewRequest creates an API request.
-func (c *Client) NewRequest(method, urlStr string) (*http.Request, error) {
-	req, err := http.NewRequest(method, urlStr, nil)
+func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Request, error) {
+	var buf io.Reader
+	contentType := ""
+
+	if v, ok := body.(string); ok {
+		buf = strings.NewReader(v)
+		contentType = "application/x-www-form-urlencoded"
+	}
+
+	req, err := http.NewRequest(method, urlStr, buf)
 	if err != nil {
 		return nil, err
 	}
+
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+
 	return req, nil
 }
 
