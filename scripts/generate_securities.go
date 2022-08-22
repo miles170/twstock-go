@@ -9,6 +9,16 @@ import (
 	twstock "github.com/miles170/twstock-go/twstock"
 )
 
+func format(w *os.File, v reflect.Value) {
+	switch v.Interface().(type) {
+	case twstock.Date:
+		d := v.Interface().(twstock.Date)
+		fmt.Fprintf(w, "Date{%d,%d,%d},", d.Year, d.Month, d.Day)
+	default:
+		fmt.Fprintf(w, "\"%s\",", v)
+	}
+}
+
 func main() {
 	w, err := os.Create("./twstock/securities_GENERATED.go")
 	if err != nil {
@@ -19,7 +29,7 @@ func main() {
 	client := twstock.NewClient()
 	securities, err := client.Security.Download()
 	if err != nil {
-		log.Fatal(w)
+		log.Fatal(err)
 	}
 
 	fmt.Fprintf(w, "// Code generated security DO NOT EDIT.\n\n")
@@ -35,7 +45,7 @@ func main() {
 			if i == 0 {
 				continue
 			}
-			fmt.Fprintf(w, "\"%s\",", reflect.Indirect(v).Field(i-1))
+			format(w, reflect.Indirect(v).Field(i-1))
 		}
 		fmt.Fprint(w, "},\n")
 	}
