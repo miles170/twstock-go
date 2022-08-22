@@ -1,6 +1,7 @@
 package twstock
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -39,6 +40,9 @@ const (
 
 	// 上櫃個股日成交資訊
 	tpexQuotesPath = "/web/stock/aftertrading/daily_trading_info/st43_result.php"
+
+	// 個股即時交易行情
+	realtimeQuotesPath = "/stock/api/getStockInfo.jsp"
 )
 
 type twseOptions struct {
@@ -242,4 +246,181 @@ func (s *QuoteService) Download(code string, year int, month time.Month) ([]Quot
 		}
 	}
 	return nil, fmt.Errorf("invalid code: %s", code)
+}
+
+type BidAsk struct {
+	Price  decimal.Decimal // 價格
+	Volume int             // 數量
+}
+
+type RealtimeQuote struct {
+	Date     time.Time       // 最新一筆成交時間
+	Code     string          // 股票代號
+	Name     string          // 簡稱
+	FullName string          // 全名
+	Price    decimal.Decimal // 最新一筆成交價
+	Open     decimal.Decimal // 開盤價
+	High     decimal.Decimal // 最高價
+	Low      decimal.Decimal // 最低價
+	Volume   int             // 總成交量
+	Bids     []BidAsk        // 最佳五檔委買資料
+	Asks     []BidAsk        // 最佳五檔委賣資料
+}
+
+type realtimeOptions struct {
+	Codes string `url:"ex_ch"`
+}
+
+type timestamp struct {
+	time.Time
+}
+
+// UnmarshalJSON handles incoming JSON.
+func (p *timestamp) UnmarshalJSON(bytes []byte) error {
+	var s string
+	err := json.Unmarshal(bytes, &s)
+	if err != nil {
+		return err
+	}
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return err
+	}
+	// realtime returns Unix timestamp in milliseconds
+	p.Time = time.Unix(i/1000, (i % 1000 * 1000000)).In(time.UTC)
+	return nil
+}
+
+type realtimeData struct {
+	Timestamp  timestamp `json:"tlong"`
+	Code       string    `json:"c"`
+	Price      string    `json:"z"`
+	BidPrices  string    `json:"b"`
+	BidVolumes string    `json:"g"`
+	AskPrices  string    `json:"a"`
+	AskVolumes string    `json:"f"`
+	Open       string    `json:"o"`
+	High       string    `json:"h"`
+	Low        string    `json:"l"`
+	Volume     string    `json:"v"`
+	Name       string    `json:"n"`
+	FullName   string    `json:"nf"`
+}
+
+type realtimeResponse struct {
+	Stat string         `json:"rtmessage"`
+	Data []realtimeData `json:"msgArray"`
+}
+
+func parseBidAsk(pricesStr string, volumesStr string) ([]BidAsk, error) {
+	split := func(v string) []string { return strings.Split(strings.Trim(v, "_"), "_") }
+
+	prices := split(pricesStr)
+	volumes := split(volumesStr)
+	if len(prices) != len(volumes) {
+		return nil, fmt.Errorf("failed parsing bid-ask")
+	}
+
+	v := []BidAsk{}
+	for i := 0; i < len(prices); i++ {
+		price, err := strconv.ParseFloat(prices[i], 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed parsing quote price: %w", err)
+		}
+		volume, err := strconv.Atoi(volumes[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed parsing quote volume: %w", err)
+		}
+		v = append(v, BidAsk{decimal.NewFromFloat(price), volume})
+	}
+	return v, nil
+}
+
+func parseRealtimeData(data realtimeData) (RealtimeQuote, error) {
+	var quote RealtimeQuote
+	price, err := strconv.ParseFloat(data.Price, 64)
+	if err != nil {
+		return quote, fmt.Errorf("failed parsing quote price: %w", err)
+	}
+	open, err := strconv.ParseFloat(data.Open, 64)
+	if err != nil {
+		return quote, fmt.Errorf("failed parsing quote open: %w", err)
+	}
+	high, err := strconv.ParseFloat(data.High, 64)
+	if err != nil {
+		return quote, fmt.Errorf("failed parsing quote high: %w", err)
+	}
+	low, err := strconv.ParseFloat(data.Low, 64)
+	if err != nil {
+		return quote, fmt.Errorf("failed parsing quote low: %w", err)
+	}
+	volume, err := strconv.Atoi(data.Volume)
+	if err != nil {
+		return quote, fmt.Errorf("failed parsing quote volume: %w", err)
+	}
+	bids, err := parseBidAsk(data.BidPrices, data.BidVolumes)
+	if err != nil {
+		return quote, fmt.Errorf("failed parsing quote bids: %w", err)
+	}
+	asks, err := parseBidAsk(data.AskPrices, data.AskVolumes)
+	if err != nil {
+		return quote, fmt.Errorf("failed parsing quote asks: %w", err)
+	}
+
+	quote.Date = data.Timestamp.Time
+	quote.Code = data.Code
+	quote.Name = data.Name
+	quote.FullName = data.FullName
+	quote.Price = decimal.NewFromFloat(price)
+	quote.Open = decimal.NewFromFloat(open)
+	quote.High = decimal.NewFromFloat(high)
+	quote.Low = decimal.NewFromFloat(low)
+	quote.Volume = volume
+	quote.Bids = bids
+	quote.Asks = asks
+
+	return quote, nil
+}
+
+func (s *QuoteService) Realtime(codes []string) (map[string]RealtimeQuote, error) {
+	for i, v := range codes {
+		//nolint:typecheck
+		if security, ok := Securities[v]; ok {
+			if security.Market == TWSE {
+				codes[i] = fmt.Sprintf("%s_%s.tw", TWSE, v)
+				continue
+			} else if security.Market == TPEx {
+				codes[i] = fmt.Sprintf("%s_%s.tw", TPEx, v)
+				continue
+			}
+		}
+		return nil, fmt.Errorf("invalid code: %s", v)
+	}
+
+	url, _ := s.client.misTwseBaseURL.Parse(realtimeQuotesPath)
+	opts := realtimeOptions{
+		Codes: strings.Join(codes, "|"),
+	}
+	url, _ = addOptions(url, opts)
+	req, _ := s.client.NewRequest("GET", url.String(), nil)
+	resp := &realtimeResponse{}
+	_, err := s.client.Do(req, &resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Stat != "OK" {
+		return nil, fmt.Errorf("invalid state: %s", resp.Stat)
+	}
+
+	quotes := map[string]RealtimeQuote{}
+	for _, data := range resp.Data {
+		quote, err := parseRealtimeData(data)
+		if err != nil {
+			return nil, err
+		}
+		quotes[data.Code] = quote
+	}
+
+	return quotes, nil
 }

@@ -699,3 +699,387 @@ func TestParse(t *testing.T) {
 		t.Error("parse returned nil; expected error")
 	}
 }
+
+func TestParseBidAsk(t *testing.T) {
+	_, err := parseBidAsk("1_2_", "1_")
+	if err == nil {
+		t.Error("parseBidAsk returned nil; expected error")
+	}
+
+	_, err = parseBidAsk("a", "1")
+	if err == nil {
+		t.Error("parseBidAsk returned nil; expected error")
+	}
+
+	_, err = parseBidAsk("1", "a")
+	if err == nil {
+		t.Error("parseBidAsk returned nil; expected error")
+	}
+}
+
+func TestTimestamp_UnmarshalJSON(t *testing.T) {
+	var testCases = map[string]struct {
+		data      []byte
+		want      timestamp
+		wantError bool
+	}{
+		"valid": {
+			data:      []byte(`"1640567145000"`),
+			want:      timestamp{Time: time.Date(2021, 12, 27, 1, 5, 45, 0, time.UTC)},
+			wantError: false,
+		},
+		"not string": {
+			data:      []byte(`1640567145000`),
+			want:      timestamp{},
+			wantError: true,
+		},
+		"empty string": {
+			data:      []byte(`""`),
+			want:      timestamp{},
+			wantError: true,
+		},
+	}
+	for name, test := range testCases {
+		t.Run(name, func(t *testing.T) {
+			date := timestamp{}
+			err := date.UnmarshalJSON(test.data)
+			if err != nil && !test.wantError {
+				t.Errorf("Timestamp.UnmarshalJSON returned an error when we expected nil")
+			}
+			if err == nil && test.wantError {
+				t.Errorf("Timestamp.UnmarshalJSON returned no error when we expected one")
+			}
+			if !cmp.Equal(test.want, date) {
+				t.Errorf("Timestamp.UnmarshalJSON expected date %v, got %v", test.want, date)
+			}
+		})
+	}
+}
+
+func TestParseRealtimeData(t *testing.T) {
+	_, err := parseRealtimeData(realtimeData{Price: "BAD"})
+	if err == nil {
+		t.Error("parseRealtimeData returned nil; expected error")
+	}
+
+	_, err = parseRealtimeData(realtimeData{Price: "1.0", Open: "BAD"})
+	if err == nil {
+		t.Error("parseRealtimeData returned nil; expected error")
+	}
+
+	_, err = parseRealtimeData(realtimeData{Price: "1.0", Open: "1.0", High: "BAD"})
+	if err == nil {
+		t.Error("parseRealtimeData returned nil; expected error")
+	}
+
+	_, err = parseRealtimeData(realtimeData{Price: "1.0", Open: "1.0", High: "1.0", Low: "BAD"})
+	if err == nil {
+		t.Error("parseRealtimeData returned nil; expected error")
+	}
+
+	_, err = parseRealtimeData(realtimeData{Price: "1.0", Open: "1.0", High: "1.0", Low: "1.0", Volume: "BAD"})
+	if err == nil {
+		t.Error("parseRealtimeData returned nil; expected error")
+	}
+
+	_, err = parseRealtimeData(realtimeData{Price: "1.0", Open: "1.0", High: "1.0", Low: "1.0", Volume: "1", BidPrices: ""})
+	if err == nil {
+		t.Error("parseRealtimeData returned nil; expected error")
+	}
+
+	_, err = parseRealtimeData(realtimeData{Price: "1.0", Open: "1.0", High: "1.0", Low: "1.0", Volume: "1", BidPrices: "1", BidVolumes: "1"})
+	if err == nil {
+		t.Error("parseRealtimeData returned nil; expected error")
+	}
+}
+
+func TestQuoteService_Realtime(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(realtimeQuotesPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		{
+			"msgArray": [
+			  {
+				"tv": "-",
+				"ps": "5350",
+				"pz": "510.0000",
+				"bp": "0",
+				"fv": "36",
+				"oa": "512.0000",
+				"ob": "511.0000",
+				"a": "511.0000_512.0000_513.0000_514.0000_515.0000_",
+				"b": "510.0000_509.0000_508.0000_507.0000_506.0000_",
+				"c": "2330",
+				"d": "20220822",
+				"ch": "2330.tw",
+				"ot": "14:30:00",
+				"tlong": "1661149800000",
+				"f": "149_211_165_352_434_",
+				"ip": "0",
+				"g": "403_922_848_441_432_",
+				"mt": "000000",
+				"ov": "29811",
+				"h": "514.0000",
+				"i": "24",
+				"it": "12",
+				"oz": "512.0000",
+				"l": "510.0000",
+				"n": "台積電",
+				"o": "511.0000",
+				"p": "0",
+				"ex": "tse",
+				"s": "5401",
+				"t": "13:30:00",
+				"u": "570.0000",
+				"v": "20813",
+				"w": "467.5000",
+				"nf": "台灣積體電路製造股份有限公司",
+				"y": "519.0000",
+				"z": "510.0000",
+				"ts": "0"
+			  },
+			  {
+				"tv": "-",
+				"ps": "263",
+				"pz": "128.5000",
+				"bp": "0",
+				"fv": "12",
+				"oa": "128.5000",
+				"ob": "127.5000",
+				"a": "128.5000_129.0000_129.5000_130.0000_130.5000_",
+				"b": "128.0000_127.5000_127.0000_126.5000_126.0000_",
+				"c": "3374",
+				"d": "20220822",
+				"ch": "3374.tw",
+				"ot": "14:30:00",
+				"tlong": "1661149800000",
+				"f": "19_7_25_37_46_",
+				"ip": "0",
+				"g": "152_87_69_48_76_",
+				"mt": "000000",
+				"ov": "626",
+				"h": "133.5000",
+				"i": "24",
+				"it": "12",
+				"oz": "128.5000",
+				"l": "128.5000",
+				"n": "精材",
+				"o": "128.5000",
+				"p": "0",
+				"ex": "otc",
+				"s": "263",
+				"t": "13:30:00",
+				"u": "142.0000",
+				"v": "5086",
+				"w": "117.0000",
+				"nf": "精材科技股份有限公司",
+				"y": "129.5000",
+				"z": "128.5000",
+				"ts": "0"
+			  }
+			],
+			"referer": "",
+			"userDelay": 5000,
+			"rtcode": "0000",
+			"queryTime": {
+			  "sysDate": "20220822",
+			  "stockInfoItem": 28,
+			  "stockInfo": 10621,
+			  "sessionStr": "UserSession",
+			  "sysTime": "15:44:03",
+			  "showChart": false,
+			  "sessionFromTime": -1,
+			  "sessionLatestTime": -1
+			},
+			"rtmessage": "OK"
+		  }`)
+	})
+
+	quotes, err := client.Quote.Realtime([]string{"2330", "3374"})
+	if err != nil {
+		t.Errorf("Quote.Realtime returned error: %v", err)
+	}
+	want := map[string]RealtimeQuote{
+		"2330": {
+			Date:     time.Date(2022, 8, 22, 6, 30, 0, 0, time.UTC),
+			Code:     "2330",
+			Name:     "台積電",
+			FullName: "台灣積體電路製造股份有限公司",
+			Price:    decimal.NewFromInt(510),
+			Open:     decimal.NewFromInt(511),
+			High:     decimal.NewFromInt(514),
+			Low:      decimal.NewFromInt(510),
+			Volume:   20813,
+			Bids: []BidAsk{
+				{decimal.NewFromInt(510), 403},
+				{decimal.NewFromInt(509), 922},
+				{decimal.NewFromInt(508), 848},
+				{decimal.NewFromInt(507), 441},
+				{decimal.NewFromInt(506), 432},
+			},
+			Asks: []BidAsk{
+				{decimal.NewFromInt(511), 149},
+				{decimal.NewFromInt(512), 211},
+				{decimal.NewFromInt(513), 165},
+				{decimal.NewFromInt(514), 352},
+				{decimal.NewFromInt(515), 434},
+			},
+		},
+		"3374": {
+			Date:     time.Date(2022, 8, 22, 6, 30, 0, 0, time.UTC),
+			Code:     "3374",
+			Name:     "精材",
+			FullName: "精材科技股份有限公司",
+			Price:    decimal.NewFromFloat(128.5),
+			Open:     decimal.NewFromFloat(128.5),
+			High:     decimal.NewFromFloat(133.5),
+			Low:      decimal.NewFromFloat(128.5),
+			Volume:   5086,
+			Bids: []BidAsk{
+				{decimal.NewFromFloat(128), 152},
+				{decimal.NewFromFloat(127.5), 87},
+				{decimal.NewFromFloat(127), 69},
+				{decimal.NewFromFloat(126.5), 48},
+				{decimal.NewFromFloat(126), 76},
+			},
+			Asks: []BidAsk{
+				{decimal.NewFromFloat(128.5), 19},
+				{decimal.NewFromFloat(129), 7},
+				{decimal.NewFromFloat(129.5), 25},
+				{decimal.NewFromFloat(130), 37},
+				{decimal.NewFromFloat(130.5), 46},
+			},
+		},
+	}
+	if !cmp.Equal(quotes, want) {
+		t.Errorf("Quote.Realtime returned %v, want %v", quotes, want)
+	}
+}
+
+func TestQuoteService_RealtimeError(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(realtimeQuotesPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.WriteHeader(http.StatusBadRequest)
+	})
+
+	_, err := client.Quote.Realtime([]string{"2330", "3374"})
+	if err == nil {
+		t.Error("Quote.Realtime returned nil; expected error")
+	}
+	testErrorContains(t, err, ": 400")
+
+	_, err = client.Quote.Realtime([]string{"BAD"})
+	if err == nil {
+		t.Error("Quote.Realtime returned nil; expected error")
+	}
+}
+
+func TestQuoteService_RealtimeBadStat(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(realtimeQuotesPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		{
+			"msgArray": [],
+			"referer": "",
+			"userDelay": 5000,
+			"rtcode": "0000",
+			"queryTime": {
+			  "sysDate": "20220822",
+			  "stockInfoItem": 28,
+			  "stockInfo": 10621,
+			  "sessionStr": "UserSession",
+			  "sysTime": "15:44:03",
+			  "showChart": false,
+			  "sessionFromTime": -1,
+			  "sessionLatestTime": -1
+			},
+			"rtmessage": "BAD"
+		  }`)
+	})
+
+	_, err := client.Quote.Realtime([]string{"2330", "3374"})
+	if err == nil {
+		t.Error("Quote.Realtime returned nil; expected error")
+	}
+}
+
+func TestQuoteService_RealtimeBadContent(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(realtimeQuotesPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		{
+			"msgArray": [
+				{
+					"tv": "-",
+					"ps": "5350",
+					"pz": "510.0000",
+					"bp": "0",
+					"fv": "36",
+					"oa": "512.0000",
+					"ob": "511.0000",
+					"a": "511.0000_512.0000_513.0000_514.0000_515.0000_",
+					"b": "510.0000_509.0000_508.0000_507.0000_506.0000_",
+					"c": "2330",
+					"d": "20220822",
+					"ch": "2330.tw",
+					"ot": "14:30:00",
+					"tlong": "1661149800000",
+					"f": "149_211_165_352_434_",
+					"ip": "0",
+					"g": "403_922_848_441_432_",
+					"mt": "000000",
+					"ov": "29811",
+					"h": "514.0000",
+					"i": "24",
+					"it": "12",
+					"oz": "512.0000",
+					"l": "510.0000",
+					"n": "台積電",
+					"o": "511.0000",
+					"p": "0",
+					"ex": "tse",
+					"s": "5401",
+					"t": "13:30:00",
+					"u": "570.0000",
+					"v": "20813",
+					"w": "467.5000",
+					"nf": "台灣積體電路製造股份有限公司",
+					"y": "519.0000",
+					"z": "--",
+					"ts": "0"
+				}
+			],
+			"referer": "",
+			"userDelay": 5000,
+			"rtcode": "0000",
+			"queryTime": {
+			  "sysDate": "20220822",
+			  "stockInfoItem": 28,
+			  "stockInfo": 10621,
+			  "sessionStr": "UserSession",
+			  "sysTime": "15:44:03",
+			  "showChart": false,
+			  "sessionFromTime": -1,
+			  "sessionLatestTime": -1
+			},
+			"rtmessage": "OK"
+		  }`)
+	})
+
+	_, err := client.Quote.Realtime([]string{"2330", "3374"})
+	if err == nil {
+		t.Error("Quote.Realtime returned nil; expected error")
+	}
+}
