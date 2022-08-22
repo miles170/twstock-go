@@ -38,8 +38,10 @@ securities, err := client.Security.DownloadTwseDelisted()
 
 ### 從證券櫃檯買賣中心下載下櫃的國際證券資料
 
+> [櫃買中心查詢下櫃證卷資料](https://www.tpex.org.tw/web/regular_emerging/deListed/de-listed_companies.php?l=zh-tw)需要指定頁數
+
 ```go
-securities, err := client.Security.DownloadTpexDelisted()
+securities, err := client.Security.DownloadTpexDelisted(0)
 ```
 
 ### 從台灣證卷交易所或證券櫃檯買賣中心下載盤後個股日成交資訊
