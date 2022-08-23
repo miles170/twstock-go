@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/golang-sql/civil"
 	"golang.org/x/text/transform"
 )
 
@@ -20,29 +21,17 @@ const (
 	TPEx Market = "otc" // 證券櫃檯買賣中心
 )
 
-type Date struct {
-	Year  int        // Year (e.g., 2014).
-	Month time.Month // Month of the year (January = 1, ...).
-	Day   int        // Day of the month, starting at 1.
-}
-
-func DateOf(t time.Time) Date {
-	var d Date
-	d.Year, d.Month, d.Day = t.Date()
-	return d
-}
-
 // 有價證券
 type Security struct {
-	Type     string // 有價證卷類別
-	Code     string // 有價證券代號
-	Name     string // 有價證券名稱
-	ISIN     string // 國際證卷辨識號碼
-	IPO      Date   // 上市日
-	Market   Market // 市場別
-	Industry string // 產業
-	CFI      string // CFICode
-	Remark   string // 備註
+	Type     string     // 有價證卷類別
+	Code     string     // 有價證券代號
+	Name     string     // 有價證券名稱
+	ISIN     string     // 國際證卷辨識號碼
+	IPO      civil.Date // 上市日
+	Market   Market     // 市場別
+	Industry string     // 產業
+	CFI      string     // CFICode
+	Remark   string     // 備註
 }
 
 // 下市的有價證卷
@@ -97,7 +86,7 @@ func (s *SecurityService) download(url string, t transform.Transformer) ([]Secur
 			cfi := strings.TrimSpace(elements.Eq(5).Text())
 			remark := strings.TrimSpace(elements.Eq(6).Text())
 			securities = append(securities,
-				Security{securityType, code, name, isin, DateOf(ipo), market, industry, cfi, remark})
+				Security{securityType, code, name, isin, civil.DateOf(ipo), market, industry, cfi, remark})
 		}
 		return true
 	})

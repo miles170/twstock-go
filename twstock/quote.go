@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang-sql/civil"
 	"github.com/shopspring/decimal"
 )
 
@@ -16,7 +17,7 @@ type QuoteService struct {
 }
 
 type Quote struct {
-	At     time.Time       // 本筆資料所屬日期
+	Date   civil.Date      // 本筆資料所屬日期
 	Open   decimal.Decimal // 開盤價
 	High   decimal.Decimal // 最高價
 	Low    decimal.Decimal // 最低價
@@ -25,13 +26,13 @@ type Quote struct {
 }
 
 // 台灣證卷交易所或是證券櫃檯買賣中心有最小查詢日期的限制
-func (m Market) MinimumDate() time.Time {
+func (m Market) MinimumDate() civil.Date {
 	if m == TWSE {
 		// 台灣證卷交易所個股日成交資訊最早到民國99年1月
-		return time.Date(2010, 1, 1, 0, 0, 0, 0, time.UTC)
+		return civil.Date{Year: 2010, Month: time.January, Day: 1}
 	}
 	// 證券櫃檯買賣中心個股日成交資訊最早到民國83年1月
-	return time.Date(1994, 1, 1, 0, 0, 0, 0, time.UTC)
+	return civil.Date{Year: 1994, Month: time.January, Day: 1}
 }
 
 const (
@@ -70,6 +71,47 @@ var (
 	ErrDateOutOffRange = errors.New("date out of range")
 )
 
+func parseDate(s string) (civil.Date, error) {
+	var date civil.Date
+	rawDate := strings.Split(strings.TrimSpace(s), "/")
+	if len(rawDate) != 3 {
+		return date, fmt.Errorf("failed parsing quote date: %s", s)
+	}
+	year, err := strconv.Atoi(rawDate[0])
+	if err != nil {
+		return date, fmt.Errorf("failed parsing quote date: %w", err)
+	}
+	month, err := strconv.Atoi(rawDate[1])
+	if err != nil {
+		return date, fmt.Errorf("failed parsing quote date: %w", err)
+	}
+	// 櫃買中心的日期在 IPO 那天結果會有＊
+	day, err := strconv.Atoi(strings.TrimRight(rawDate[2], "＊"))
+	if err != nil {
+		return date, fmt.Errorf("failed parsing quote date: %w", err)
+	}
+	// 需要將民國年轉成西元年
+	date = civil.Date{Year: year + 1911, Month: time.Month(month), Day: day}
+	return date, nil
+}
+
+func parsePrice(s string) (decimal.Decimal, error) {
+	var v decimal.Decimal
+	f, err := strconv.ParseFloat(strings.ReplaceAll(s, ",", ""), 64)
+	if err != nil {
+		return v, err
+	}
+	return decimal.NewFromFloat(f), nil
+}
+
+func parseVolume(s string) (int, error) {
+	v, err := strconv.Atoi(strings.ReplaceAll(s, ",", ""))
+	if err != nil {
+		return 0, err
+	}
+	return v, nil
+}
+
 func parse(data []string) (Quote, error) {
 	var quote Quote
 	if len(data) < 7 {
@@ -82,50 +124,35 @@ func parse(data []string) (Quote, error) {
 		data[6] == "--" {
 		return quote, errSuspendedTrading
 	}
-	rawDate := strings.Split(strings.TrimSpace(data[0]), "/")
-	if len(rawDate) != 3 {
-		return quote, fmt.Errorf("failed parsing quote date: %s", data[0])
-	}
-	year, err := strconv.Atoi(rawDate[0])
+	date, err := parseDate(data[0])
 	if err != nil {
-		return quote, fmt.Errorf("failed parsing quote date: %w", err)
+		return quote, err
 	}
-	month, err := strconv.Atoi(rawDate[1])
-	if err != nil {
-		return quote, fmt.Errorf("failed parsing quote date: %w", err)
-	}
-	// 櫃買中心的日期在 IPO 那天結果會有＊
-	day, err := strconv.Atoi(strings.TrimRight(rawDate[2], "＊"))
-	if err != nil {
-		return quote, fmt.Errorf("failed parsing quote date: %w", err)
-	}
-	// 需要將民國年轉成西元年
-	date := time.Date(year+1911, time.Month(month), day, 0, 0, 0, 0, time.UTC)
-	open, err := strconv.ParseFloat(strings.ReplaceAll(data[3], ",", ""), 64)
+	open, err := parsePrice(data[3])
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote open: %w", err)
 	}
-	high, err := strconv.ParseFloat(strings.ReplaceAll(data[4], ",", ""), 64)
+	high, err := parsePrice(data[4])
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote high: %w", err)
 	}
-	low, err := strconv.ParseFloat(strings.ReplaceAll(data[5], ",", ""), 64)
+	low, err := parsePrice(data[5])
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote low: %w", err)
 	}
-	close, err := strconv.ParseFloat(strings.ReplaceAll(data[6], ",", ""), 64)
+	close, err := parsePrice(data[6])
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote close: %w", err)
 	}
-	volume, err := strconv.Atoi(strings.ReplaceAll(data[1], ",", ""))
+	volume, err := parseVolume(data[1])
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote volume: %w", err)
 	}
-	quote.At = date
-	quote.Open = decimal.NewFromFloat(open)
-	quote.High = decimal.NewFromFloat(high)
-	quote.Low = decimal.NewFromFloat(low)
-	quote.Close = decimal.NewFromFloat(close)
+	quote.Date = date
+	quote.Open = open
+	quote.High = high
+	quote.Low = low
+	quote.Close = close
 	quote.Volume = volume
 	return quote, nil
 }
@@ -136,14 +163,14 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 	if security, ok := Securities[code]; !ok || security.Market != TWSE {
 		return nil, fmt.Errorf("invalid twse code: %s", code)
 	}
-	date := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+	date := civil.Date{Year: year, Month: month, Day: 1}
 	if date.Before(TWSE.MinimumDate()) {
-		return nil, fmt.Errorf("invalid date: %s", date.Format("2006-01"))
+		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
 	}
 	url, _ := s.client.twseBaseURL.Parse(twseQuotesPath)
 	opts := twseOptions{
 		Response: "json",
-		Date:     date.Format("20060102"),
+		Date:     fmt.Sprintf("%04d%02d%02d", date.Year, date.Month, date.Day),
 		Code:     code,
 	}
 	url, _ = addOptions(url, opts)
@@ -206,14 +233,14 @@ func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]
 	if security, ok := Securities[code]; !ok || security.Market != TPEx {
 		return nil, fmt.Errorf("invalid tpex code: %s", code)
 	}
-	date := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+	date := civil.Date{Year: year, Month: month, Day: 1}
 	if date.Before(TPEx.MinimumDate()) {
-		return nil, fmt.Errorf("invalid date: %s", date.Format("2006-01"))
+		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
 	}
 	url, _ := s.client.tpexBaseURL.Parse(tpexQuotesPath)
 	opts := tpexOptions{
 		// 需要將西元年轉為民國年
-		Date: fmt.Sprintf("%d/%s", date.Year()-1911, date.Format("01")),
+		Date: fmt.Sprintf("%d/%02d", date.Year-1911, date.Month),
 		Code: code,
 	}
 	url, _ = addOptions(url, opts)
@@ -339,38 +366,38 @@ func parseBidAsk(pricesStr string, volumesStr string) ([]BidAsk, error) {
 
 	v := []BidAsk{}
 	for i := 0; i < len(prices); i++ {
-		price, err := strconv.ParseFloat(prices[i], 64)
+		price, err := parsePrice(prices[i])
 		if err != nil {
 			return nil, fmt.Errorf("failed parsing quote price: %w", err)
 		}
-		volume, err := strconv.Atoi(volumes[i])
+		volume, err := parseVolume(volumes[i])
 		if err != nil {
 			return nil, fmt.Errorf("failed parsing quote volume: %w", err)
 		}
-		v = append(v, BidAsk{decimal.NewFromFloat(price), volume})
+		v = append(v, BidAsk{price, volume})
 	}
 	return v, nil
 }
 
 func parseRealtimeData(data realtimeData) (RealtimeQuote, error) {
 	var quote RealtimeQuote
-	price, err := strconv.ParseFloat(data.Price, 64)
+	price, err := parsePrice(data.Price)
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote price: %w", err)
 	}
-	open, err := strconv.ParseFloat(data.Open, 64)
+	open, err := parsePrice(data.Open)
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote open: %w", err)
 	}
-	high, err := strconv.ParseFloat(data.High, 64)
+	high, err := parsePrice(data.High)
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote high: %w", err)
 	}
-	low, err := strconv.ParseFloat(data.Low, 64)
+	low, err := parsePrice(data.Low)
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote low: %w", err)
 	}
-	volume, err := strconv.Atoi(data.Volume)
+	volume, err := parseVolume(data.Volume)
 	if err != nil {
 		return quote, fmt.Errorf("failed parsing quote volume: %w", err)
 	}
@@ -387,10 +414,10 @@ func parseRealtimeData(data realtimeData) (RealtimeQuote, error) {
 	quote.Code = data.Code
 	quote.Name = data.Name
 	quote.FullName = data.FullName
-	quote.Price = decimal.NewFromFloat(price)
-	quote.Open = decimal.NewFromFloat(open)
-	quote.High = decimal.NewFromFloat(high)
-	quote.Low = decimal.NewFromFloat(low)
+	quote.Price = price
+	quote.Open = open
+	quote.High = high
+	quote.Low = low
 	quote.Volume = volume
 	quote.Bids = bids
 	quote.Asks = asks

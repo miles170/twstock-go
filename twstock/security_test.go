@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
+	"github.com/golang-sql/civil"
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/text/encoding/traditionalchinese"
 )
@@ -111,10 +111,10 @@ func TestSecurityService_Download(t *testing.T) {
 		t.Errorf("Security.Download returned error: %v", err)
 	}
 	want := []Security{
-		{"股票", "1101", "台泥", "TW0001101004", Date{1962, 2, 9}, "tse", "水泥工業", "ESVUFR", ""},
-		{"股票", "1102", "亞泥", "TW0001102002", Date{1962, 6, 8}, "tse", "水泥工業", "ESVUFR", ""},
-		{"上櫃認購(售)權證", "70286P", "驊訊元富18售01", "TW21Z70286P0", Date{2021, 11, 23}, "otc", "", "RWSCPE", ""},
-		{"上櫃認購(售)權證", "70299P", "合晶元富18售03", "TW21Z70299P3", Date{2021, 11, 26}, "otc", "", "RWSCPE", ""},
+		{"股票", "1101", "台泥", "TW0001101004", civil.Date{Year: 1962, Month: 2, Day: 9}, "tse", "水泥工業", "ESVUFR", ""},
+		{"股票", "1102", "亞泥", "TW0001102002", civil.Date{Year: 1962, Month: 6, Day: 8}, "tse", "水泥工業", "ESVUFR", ""},
+		{"上櫃認購(售)權證", "70286P", "驊訊元富18售01", "TW21Z70286P0", civil.Date{Year: 2021, Month: 11, Day: 23}, "otc", "", "RWSCPE", ""},
+		{"上櫃認購(售)權證", "70299P", "合晶元富18售03", "TW21Z70299P3", civil.Date{Year: 2021, Month: 11, Day: 26}, "otc", "", "RWSCPE", ""},
 	}
 	if !cmp.Equal(securities, want) {
 		t.Errorf("Security.Download returned %v, want %v", securities, want)
@@ -1134,25 +1134,5 @@ func TestSecurityService_DownloadTpexDelistedError(t *testing.T) {
 	_, err = client.Security.DownloadTpexDelisted(0)
 	if err == nil {
 		t.Error("Security.DownloadTpexDelisted returned nil; expected error")
-	}
-}
-
-func TestDate(t *testing.T) {
-	for _, test := range []struct {
-		time     time.Time
-		wantDate Date
-	}{
-		{
-			time:     time.Date(2022, 8, 22, 12, 13, 14, 15, time.Local),
-			wantDate: Date{2022, 8, 22},
-		},
-		{
-			time:     time.Date(2022, 8, 22, 7, 7, 9, 7, time.UTC),
-			wantDate: DateOf(time.Date(2022, 8, 22, 3, 4, 5, 6, time.Local)),
-		},
-	} {
-		if got := DateOf(test.time); got != test.wantDate {
-			t.Errorf("DateOf returned %v, want %v", got, test.wantDate)
-		}
 	}
 }
