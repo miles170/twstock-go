@@ -60,7 +60,15 @@ type twseResponse struct {
 	Notes  []string   `json:"notes"`
 }
 
-var ErrSuspendedTrading = errors.New("parse: suspended trading")
+var (
+	errSuspendedTrading = errors.New("parse: suspended trading")
+
+	// 當查詢不到個股日成交資訊丟出此錯誤
+	ErrNoData = errors.New("no data found")
+
+	// 當查詢日期超出限制的時候丟出此錯誤
+	ErrDateOutOffRange = errors.New("date out of range")
+)
 
 func parse(data []string) (Quote, error) {
 	var quote Quote
@@ -72,7 +80,7 @@ func parse(data []string) (Quote, error) {
 		data[4] == "--" ||
 		data[5] == "--" ||
 		data[6] == "--" {
-		return quote, ErrSuspendedTrading
+		return quote, errSuspendedTrading
 	}
 	rawDate := strings.Split(strings.TrimSpace(data[0]), "/")
 	if len(rawDate) != 3 {
@@ -146,6 +154,11 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 		return nil, err
 	}
 	if resp.Stat != "OK" {
+		if resp.Stat == "很抱歉，沒有符合條件的資料!" {
+			return nil, ErrNoData
+		} else if resp.Stat == "查詢日期大於今日，請重新查詢!" {
+			return nil, ErrDateOutOffRange
+		}
 		return nil, fmt.Errorf("invalid state: %s", resp.Stat)
 	}
 	if len(resp.Fields) != 9 ||
@@ -164,7 +177,7 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 	for _, data := range resp.Data {
 		quote, err := parse(data)
 		if err != nil {
-			if errors.Is(err, ErrSuspendedTrading) {
+			if errors.Is(err, errSuspendedTrading) {
 				continue
 			}
 			return nil, err
@@ -213,8 +226,11 @@ func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]
 	if resp.Code != code {
 		return nil, fmt.Errorf("invalid tpex code returned %s, want %s", resp.Code, code)
 	}
-	if resp.DataLength == 0 || resp.DataLength != len(resp.Data) {
+	if resp.DataLength != len(resp.Data) {
 		return nil, fmt.Errorf("failed parsing quote data length returned %d, want %d", resp.DataLength, len(resp.Data))
+	}
+	if resp.DataLength == 0 {
+		return nil, ErrNoData
 	}
 	quotes := []Quote{}
 	for _, data := range resp.Data {
@@ -223,7 +239,7 @@ func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]
 		}
 		quote, err := parse(data)
 		if err != nil {
-			if errors.Is(err, ErrSuspendedTrading) {
+			if errors.Is(err, errSuspendedTrading) {
 				continue
 			}
 			return nil, err

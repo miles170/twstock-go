@@ -1,6 +1,7 @@
 package twstock
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -168,6 +169,64 @@ func TestQuoteService_DownloadTwseError(t *testing.T) {
 	_, err = client.Quote.DownloadTwse("2330", 2009, 12)
 	if err == nil {
 		t.Error("Quote.DownloadTwse returned nil; expected error")
+	}
+}
+
+func TestQuoteService_DownloadTwseErrNoData(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(twseQuotesPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		{
+			"stat": "很抱歉，沒有符合條件的資料!",
+			"date": "20220801",
+			"title": "111年08月 2330 台積電           各日成交資訊",
+			"fields": [],
+			"notes": [
+			  "符號說明:+/-/X表示漲/跌/不比價",
+			  "當日統計資訊僅含一般交易，不含零股、盤後定價、鉅額、拍賣、標購。",
+			  "ETF證券代號第六碼為K、M、S、C者，表示該ETF以外幣交易。"
+			]
+		  }`)
+	})
+
+	_, err := client.Quote.DownloadTwse("2330", 2022, 8)
+	if err == nil {
+		t.Error("Quote.DownloadTwse returned nil; expected error")
+	}
+	if !errors.Is(err, ErrNoData) {
+		t.Errorf("Quote.DownloadTwse returned %v, want %v", err, ErrNoData)
+	}
+}
+
+func TestQuoteService_DownloadTwseErrDateOutOffRange(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(twseQuotesPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		{
+			"stat": "查詢日期大於今日，請重新查詢!",
+			"date": "20220801",
+			"title": "111年08月 2330 台積電           各日成交資訊",
+			"fields": [],
+			"notes": [
+			  "符號說明:+/-/X表示漲/跌/不比價",
+			  "當日統計資訊僅含一般交易，不含零股、盤後定價、鉅額、拍賣、標購。",
+			  "ETF證券代號第六碼為K、M、S、C者，表示該ETF以外幣交易。"
+			]
+		  }`)
+	})
+
+	_, err := client.Quote.DownloadTwse("2330", 2022, 8)
+	if err == nil {
+		t.Error("Quote.DownloadTwse returned nil; expected error")
+	}
+	if !errors.Is(err, ErrDateOutOffRange) {
+		t.Errorf("Quote.DownloadTwse returned %v, want %v", err, ErrDateOutOffRange)
 	}
 }
 
@@ -434,6 +493,32 @@ func TestQuoteService_DownloadTpexError(t *testing.T) {
 	_, err = client.Quote.DownloadTpex("3374", 1993, 12)
 	if err == nil {
 		t.Error("Quote.DownloadTpex returned nil; expected error")
+	}
+}
+
+func TestQuoteService_DownloadTpexErrNoData(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(tpexQuotesPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		{
+			"stkNo": "3374",
+			"stkName": "精材            ",
+			"showListPriceNote": false,
+			"showListPriceLink": false,
+			"reportDate": "111/08",
+			"iTotalRecords": 0
+		}`)
+	})
+
+	_, err := client.Quote.Download("3374", 2022, 8)
+	if err == nil {
+		t.Errorf("Quote.Download returned nil; expected error")
+	}
+	if !errors.Is(err, ErrNoData) {
+		t.Errorf("Quote.Download returned %v, want %v", err, ErrNoData)
 	}
 }
 
