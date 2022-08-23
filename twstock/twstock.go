@@ -41,8 +41,9 @@ type Client struct {
 	isinTwseDecoder transform.Transformer
 
 	// Services used for talking to different parts of the API.
-	Security *SecurityService
-	Quote    *QuoteService
+	MarketData *MarketDataService
+	Security   *SecurityService
+	Quote      *QuoteService
 }
 
 // addOptions adds the parameters in opts as URL query parameters to s. opts
@@ -83,6 +84,7 @@ func NewClient() *Client {
 		isinTwseBaseURL: isinTwseBaseURL,
 		isinTwseDecoder: traditionalchinese.Big5.NewDecoder(),
 	}
+	c.MarketData = &MarketDataService{client: c}
 	c.Security = &SecurityService{client: c}
 	c.Quote = &QuoteService{client: c}
 	return c

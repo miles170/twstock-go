@@ -25,16 +25,6 @@ type Quote struct {
 	Volume int             // 成交量
 }
 
-// 台灣證卷交易所或是證券櫃檯買賣中心有最小查詢日期的限制
-func (m Market) MinimumDate() civil.Date {
-	if m == TWSE {
-		// 台灣證卷交易所個股日成交資訊最早到民國99年1月
-		return civil.Date{Year: 2010, Month: time.January, Day: 1}
-	}
-	// 證券櫃檯買賣中心個股日成交資訊最早到民國83年1月
-	return civil.Date{Year: 1994, Month: time.January, Day: 1}
-}
-
 const (
 	// 上市個股日成交資訊
 	twseQuotesPath = "/exchangeReport/STOCK_DAY"
@@ -49,7 +39,7 @@ const (
 type twseOptions struct {
 	Response string `url:"response"`
 	Date     string `url:"date"`
-	Code     string `url:"stockNo"`
+	Code     string `url:"stockNo,omitempty"`
 }
 
 type twseResponse struct {
@@ -92,6 +82,9 @@ func parseDate(s string) (civil.Date, error) {
 	}
 	// 需要將民國年轉成西元年
 	date = civil.Date{Year: year + 1911, Month: time.Month(month), Day: day}
+	if !date.IsValid() {
+		return date, fmt.Errorf("failed parsing quote date: %s", s)
+	}
 	return date, nil
 }
 
@@ -112,7 +105,7 @@ func parseVolume(s string) (int, error) {
 	return v, nil
 }
 
-func parse(data []string) (Quote, error) {
+func (*QuoteService) parse(data []string) (Quote, error) {
 	var quote Quote
 	if len(data) < 7 {
 		return quote, fmt.Errorf("failed parsing quote data")
@@ -157,6 +150,16 @@ func parse(data []string) (Quote, error) {
 	return quote, nil
 }
 
+// 台灣證卷交易所或是證券櫃檯買賣中心有最小查詢日期的限制
+func (s *QuoteService) MinimumDate(m Market) civil.Date {
+	if m == TWSE {
+		// 台灣證卷交易所個股日成交資訊最早到民國99年1月
+		return civil.Date{Year: 2010, Month: time.January, Day: 1}
+	}
+	// 證券櫃檯買賣中心個股日成交資訊最早到民國83年1月
+	return civil.Date{Year: 1994, Month: time.January, Day: 1}
+}
+
 // 從台灣證卷交易所下載盤後個股日成交資訊
 func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]Quote, error) {
 	//nolint:typecheck
@@ -164,7 +167,7 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 		return nil, fmt.Errorf("invalid twse code: %s", code)
 	}
 	date := civil.Date{Year: year, Month: month, Day: 1}
-	if date.Before(TWSE.MinimumDate()) {
+	if date.Before(s.MinimumDate(TWSE)) {
 		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
 	}
 	url, _ := s.client.twseBaseURL.Parse(twseQuotesPath)
@@ -202,7 +205,7 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 	}
 	quotes := []Quote{}
 	for _, data := range resp.Data {
-		quote, err := parse(data)
+		quote, err := s.parse(data)
 		if err != nil {
 			if errors.Is(err, errSuspendedTrading) {
 				continue
@@ -216,7 +219,7 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 
 type tpexOptions struct {
 	Date string `url:"d"`
-	Code string `url:"stkno"`
+	Code string `url:"stkno,omitempty"`
 }
 
 type tpexResponse struct {
@@ -234,7 +237,7 @@ func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]
 		return nil, fmt.Errorf("invalid tpex code: %s", code)
 	}
 	date := civil.Date{Year: year, Month: month, Day: 1}
-	if date.Before(TPEx.MinimumDate()) {
+	if date.Before(s.MinimumDate(TPEx)) {
 		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
 	}
 	url, _ := s.client.tpexBaseURL.Parse(tpexQuotesPath)
@@ -264,7 +267,7 @@ func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]
 		if len(data) != 9 {
 			return nil, fmt.Errorf("failed parsing quote fields")
 		}
-		quote, err := parse(data)
+		quote, err := s.parse(data)
 		if err != nil {
 			if errors.Is(err, errSuspendedTrading) {
 				continue
@@ -272,7 +275,7 @@ func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]
 			return nil, err
 		}
 		// 成交仟股
-		quote.Volume = quote.Volume * 1000
+		quote.Volume *= 1000
 		quotes = append(quotes, quote)
 	}
 	return quotes, nil
@@ -426,7 +429,7 @@ func parseRealtimeData(data realtimeData) (RealtimeQuote, error) {
 }
 
 // 從台灣證卷交易所下載即時個股成交資訊
-func (s *QuoteService) Realtime(codes []string) (map[string]RealtimeQuote, error) {
+func (s *QuoteService) Realtime(codes ...string) (map[string]RealtimeQuote, error) {
 	for i, v := range codes {
 		//nolint:typecheck
 		if security, ok := Securities[v]; ok {

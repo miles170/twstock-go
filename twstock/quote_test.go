@@ -644,162 +644,140 @@ func TestQuoteService_DownloadBadData(t *testing.T) {
 	}
 }
 
-func TestParse(t *testing.T) {
-	_, err := parse([]string{})
-	if err == nil {
-		t.Error("parse returned nil; expected error")
+func TestQuoteService_parse(t *testing.T) {
+	client, _, teardown := setup()
+	defer teardown()
+
+	var testCases = []([]string){
+		[]string{},
+		[]string{
+			"111/08/01",
+			"1,328",
+			"168,265",
+			"--",
+			"--",
+			"--",
+			"--",
+			"-2.00",
+			"1,272",
+		},
+		[]string{
+			"a/08/01",
+			"1,328",
+			"168,265",
+			"127.50",
+			"128.00",
+			"125.50",
+			"127.00",
+			"-2.00",
+			"1,272",
+		},
+		[]string{
+			"111/a/01",
+			"1,328",
+			"168,265",
+			"127.50",
+			"128.00",
+			"125.50",
+			"127.00",
+			"-2.00",
+			"1,272",
+		},
+		[]string{
+			"111/08/a",
+			"1,328",
+			"168,265",
+			"127.50",
+			"128.00",
+			"125.50",
+			"127.00",
+			"-2.00",
+			"1,272",
+		},
+		[]string{
+			"111/08/01",
+			"1,328",
+			"168,265",
+			"a",
+			"128.00",
+			"125.50",
+			"127.00",
+			"-2.00",
+			"1,272",
+		},
+		[]string{
+			"111/08/01",
+			"1,328",
+			"168,265",
+			"127.50",
+			"a",
+			"125.50",
+			"127.00",
+			"-2.00",
+			"1,272",
+		},
+		[]string{
+			"111/08/01",
+			"1,328",
+			"168,265",
+			"127.50",
+			"128.00",
+			"a",
+			"127.00",
+			"-2.00",
+			"1,272",
+		},
+		[]string{
+			"111/08/01",
+			"1,328",
+			"168,265",
+			"127.50",
+			"128.00",
+			"125.50",
+			"a",
+			"-2.00",
+			"1,272",
+		},
+		[]string{
+			"111/08/01",
+			"a",
+			"168,265",
+			"127.50",
+			"128.00",
+			"125.50",
+			"127.00",
+			"-2.00",
+			"1,272",
+		},
 	}
 
-	_, err = parse([]string{
-		"111/08/01",
-		"1,328",
-		"168,265",
-		"--",
-		"--",
-		"--",
-		"--",
-		"-2.00",
-		"1,272",
-	})
-	if err == nil {
-		t.Error("parse returned nil; expected error")
-	}
-
-	_, err = parse([]string{
-		"a/08/01",
-		"1,328",
-		"168,265",
-		"127.50",
-		"128.00",
-		"125.50",
-		"127.00",
-		"-2.00",
-		"1,272",
-	})
-	if err == nil {
-		t.Error("parse returned nil; expected error")
-	}
-
-	_, err = parse([]string{
-		"111/a/01",
-		"1,328",
-		"168,265",
-		"127.50",
-		"128.00",
-		"125.50",
-		"127.00",
-		"-2.00",
-		"1,272",
-	})
-	if err == nil {
-		t.Error("parse returned nil; expected error")
-	}
-
-	_, err = parse([]string{
-		"111/08/a",
-		"1,328",
-		"168,265",
-		"127.50",
-		"128.00",
-		"125.50",
-		"127.00",
-		"-2.00",
-		"1,272",
-	})
-	if err == nil {
-		t.Error("parse returned nil; expected error")
-	}
-
-	_, err = parse([]string{
-		"111/08/01",
-		"1,328",
-		"168,265",
-		"a",
-		"128.00",
-		"125.50",
-		"127.00",
-		"-2.00",
-		"1,272",
-	})
-	if err == nil {
-		t.Error("parse returned nil; expected error")
-	}
-
-	_, err = parse([]string{
-		"111/08/01",
-		"1,328",
-		"168,265",
-		"127.50",
-		"a",
-		"125.50",
-		"127.00",
-		"-2.00",
-		"1,272",
-	})
-	if err == nil {
-		t.Error("parse returned nil; expected error")
-	}
-
-	_, err = parse([]string{
-		"111/08/01",
-		"1,328",
-		"168,265",
-		"127.50",
-		"128.00",
-		"a",
-		"127.00",
-		"-2.00",
-		"1,272",
-	})
-	if err == nil {
-		t.Error("parse returned nil; expected error")
-	}
-
-	_, err = parse([]string{
-		"111/08/01",
-		"1,328",
-		"168,265",
-		"127.50",
-		"128.00",
-		"125.50",
-		"a",
-		"-2.00",
-		"1,272",
-	})
-	if err == nil {
-		t.Error("parse returned nil; expected error")
-	}
-
-	_, err = parse([]string{
-		"111/08/01",
-		"a",
-		"168,265",
-		"127.50",
-		"128.00",
-		"125.50",
-		"127.00",
-		"-2.00",
-		"1,272",
-	})
-	if err == nil {
-		t.Error("parse returned nil; expected error")
+	for _, test := range testCases {
+		t.Run("parse", func(t *testing.T) {
+			_, err := client.Quote.parse(test)
+			if err == nil {
+				t.Error("client.Quote.parse returned nil; expected error")
+			}
+		})
 	}
 }
 
 func TestParseBidAsk(t *testing.T) {
-	_, err := parseBidAsk("1_2_", "1_")
-	if err == nil {
-		t.Error("parseBidAsk returned nil; expected error")
+	var testCases = []struct {
+		pricesStr  string
+		volumesStr string
+	}{
+		{"1_2_", "1_"},
+		{"a", "1"},
+		{"1", "a"},
 	}
 
-	_, err = parseBidAsk("a", "1")
-	if err == nil {
-		t.Error("parseBidAsk returned nil; expected error")
-	}
-
-	_, err = parseBidAsk("1", "a")
-	if err == nil {
-		t.Error("parseBidAsk returned nil; expected error")
+	for _, test := range testCases {
+		t.Run("parse", func(t *testing.T) {
+			_, err := parseBidAsk(test.pricesStr, test.volumesStr)
+			if err == nil {
+				t.Error("parseBidAsk returned nil; expected error")
+			}
+		})
 	}
 }
 
@@ -984,7 +962,7 @@ func TestQuoteService_Realtime(t *testing.T) {
 		  }`)
 	})
 
-	quotes, err := client.Quote.Realtime([]string{"2330", "3374"})
+	quotes, err := client.Quote.Realtime("2330", "3374")
 	if err != nil {
 		t.Errorf("Quote.Realtime returned error: %v", err)
 	}
@@ -1054,13 +1032,13 @@ func TestQuoteService_RealtimeError(t *testing.T) {
 		w.WriteHeader(http.StatusBadRequest)
 	})
 
-	_, err := client.Quote.Realtime([]string{"2330", "3374"})
+	_, err := client.Quote.Realtime("2330", "3374")
 	if err == nil {
 		t.Error("Quote.Realtime returned nil; expected error")
 	}
 	testErrorContains(t, err, ": 400")
 
-	_, err = client.Quote.Realtime([]string{"BAD"})
+	_, err = client.Quote.Realtime("BAD")
 	if err == nil {
 		t.Error("Quote.Realtime returned nil; expected error")
 	}
@@ -1092,7 +1070,7 @@ func TestQuoteService_RealtimeBadStat(t *testing.T) {
 		  }`)
 	})
 
-	_, err := client.Quote.Realtime([]string{"2330", "3374"})
+	_, err := client.Quote.Realtime("2330", "3374")
 	if err == nil {
 		t.Error("Quote.Realtime returned nil; expected error")
 	}
@@ -1164,7 +1142,7 @@ func TestQuoteService_RealtimeBadContent(t *testing.T) {
 		  }`)
 	})
 
-	_, err := client.Quote.Realtime([]string{"2330", "3374"})
+	_, err := client.Quote.Realtime("2330", "3374")
 	if err == nil {
 		t.Error("Quote.Realtime returned nil; expected error")
 	}

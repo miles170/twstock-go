@@ -53,7 +53,19 @@ quotes, err := client.Quote.DownloadTwse("2330", 2022, 8)
 ### 從台灣證卷交易所下載即時個股成交資訊
 
 ```go
-quotes, err := client.Quote.Realtime([]string{"2330"})
+quotes, err := client.Quote.Realtime("2330", "3374")
+```
+
+### 從台灣證卷交易所下載盤後每日市場成交資訊
+
+```go
+marketData, err := client.MarketData.DownloadTwse(2022, 8)
+```
+
+### 從證券櫃檯買賣中心下載盤後每日市場成交資訊
+
+```go
+marketData, err := client.MarketData.DownloadTpex(2022, 8)
 ```
 
 ## License
