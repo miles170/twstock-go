@@ -904,7 +904,7 @@ func TestQuoteService_Realtime(t *testing.T) {
 	}
 	want := map[string]RealtimeQuote{
 		"2330": {
-			Date:     time.Date(2022, 8, 22, 6, 30, 0, 0, time.UTC),
+			At:       time.Date(2022, 8, 22, 6, 30, 0, 0, time.UTC),
 			Code:     "2330",
 			Name:     "台積電",
 			FullName: "台灣積體電路製造股份有限公司",
@@ -929,7 +929,7 @@ func TestQuoteService_Realtime(t *testing.T) {
 			},
 		},
 		"3374": {
-			Date:     time.Date(2022, 8, 22, 6, 30, 0, 0, time.UTC),
+			At:       time.Date(2022, 8, 22, 6, 30, 0, 0, time.UTC),
 			Code:     "3374",
 			Name:     "精材",
 			FullName: "精材科技股份有限公司",

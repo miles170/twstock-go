@@ -254,7 +254,7 @@ type BidAsk struct {
 }
 
 type RealtimeQuote struct {
-	Date     time.Time       // 最新一筆成交時間
+	At       time.Time       // 最新一筆成交時間
 	Code     string          // 股票代號
 	Name     string          // 簡稱
 	FullName string          // 全名
@@ -367,7 +367,7 @@ func parseRealtimeData(data realtimeData) (RealtimeQuote, error) {
 		return quote, fmt.Errorf("failed parsing quote asks: %w", err)
 	}
 
-	quote.Date = data.Timestamp.Time
+	quote.At = data.Timestamp.Time
 	quote.Code = data.Code
 	quote.Name = data.Name
 	quote.FullName = data.FullName
