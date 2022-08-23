@@ -63,7 +63,7 @@ func addOptions(u *url.URL, opts interface{}) (*url.URL, error) {
 	return u, nil
 }
 
-// NewClient returns a new Fugle API client.
+// NewClient returns a new twstock API client.
 func NewClient() *Client {
 	httpClient := &http.Client{}
 	twseBaseURL, _ := url.Parse(defaultTwseBaseURL)
@@ -132,7 +132,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 	return resp, err
 }
 
-// Do sends an API request and returns the goquery.Document.
+// DoTransformToDocument sends an API request and returns the goquery.Document.
 func (c *Client) DoTransformToDocument(req *http.Request, t transform.Transformer) (*goquery.Document, error) {
 	resp, err := c.client.Do(req)
 	if err != nil {
