@@ -201,23 +201,6 @@ func TestMarketDataService_DownloadTwseErrDateOutOffRange(t *testing.T) {
 		"notes": [
 			"當日統計資訊含一般、零股、盤後定價，不含鉅額、拍賣、標購。",
 			"不加計外幣交易證券交易金額。"
-		]}`,
-		`{
-		"stat": "查詢日期小於79年1月4日，請重新查詢!",
-		"date": "20220823",
-		"title": "111年08月市場成交資訊",
-		"fields": [
-			"日期",
-			"成交股數",
-			"成交金額",
-			"成交筆數",
-			"發行量加權股價指數",
-			"漲跌點數"
-		],
-		"data": [],
-		"notes": [
-			"當日統計資訊含一般、零股、盤後定價，不含鉅額、拍賣、標購。",
-			"不加計外幣交易證券交易金額。"
 		]}`}
 
 	for _, test := range testCases {

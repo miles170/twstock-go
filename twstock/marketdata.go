@@ -97,7 +97,7 @@ func (s *MarketDataService) DownloadTwse(year int, month time.Month) ([]MarketDa
 		return nil, err
 	}
 	if resp.Stat != "OK" {
-		if resp.Stat == "查詢日期大於今日，請重新查詢!" || resp.Stat == "查詢日期小於79年1月4日，請重新查詢!" {
+		if resp.Stat == "查詢日期大於今日，請重新查詢!" {
 			return nil, ErrDateOutOffRange
 		}
 		return nil, fmt.Errorf("invalid state: %s", resp.Stat)
