@@ -36,6 +36,11 @@ jobs:
       - name: Generate securities list
         run: go run ./scripts/generate_securities.go && go fmt ./twstock/securities_GENERATED.go
 
-      - name: Ensure produces a zero diff
+      - name: Check securities list changed
+        id: check_list_changed
         shell: bash
-        run: git diff --exit-code; code=$?; git checkout -- .; (exit $code)
+        run: git diff --exit-code; code=$?; echo "::set-output name=changed::${code}"
+
+      - shell: bash
+        if: steps.check_list_changed.outputs.changed == 1
+        run: echo "CHANGED"
