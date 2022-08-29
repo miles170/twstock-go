@@ -33,8 +33,11 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
 
-      - name: Generate securities
-        run: go run ./scripts/generate_securities.go && go fmt ./twstock/securities_GENERATED.go
+      - name: Generate securities list
+        run: |
+          go run ./scripts/generate_securities.go &&
+          mv /tmp/securities_GENERATED.go ./twstock/securities_GENERATED.go &&
+          go fmt ./twstock/securities_GENERATED.go
 
       - name: Get changed files
         id: changed-files
