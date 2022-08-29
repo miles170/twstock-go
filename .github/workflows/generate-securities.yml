@@ -39,7 +39,8 @@ jobs:
       - name: Check securities list changed
         id: check_list_changed
         shell: bash
-        run: git diff --quiet --exit-code; code=$?; echo "::set-output name=changed::${code}"; (exit 0)
+        run: |
+          [ -z "$(git diff --name-only ./twstock/securities_GENERATED.go)" ] || echo "::set-output name=changed::1";
 
       - name: Create Pull Request
         id: cpr
