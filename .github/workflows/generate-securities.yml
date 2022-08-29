@@ -39,7 +39,7 @@ jobs:
       - name: Check securities list changed
         id: check_list_changed
         shell: bash
-        run: git diff --quiet --exit-code; code=$?; echo "::set-output name=changed::${code}"
+        run: git diff --quiet --exit-code; code=$?; echo "::set-output name=changed::${code}"; (exit 0)
 
       - name: Create Pull Request
         id: cpr
