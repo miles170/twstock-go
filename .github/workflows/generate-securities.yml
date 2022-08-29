@@ -34,21 +34,8 @@ jobs:
           restore-keys: ${{ runner.os }}-go-
 
       - name: Generate securities list
-        run: |
-          go run ./scripts/generate_securities.go &&
-          mv /tmp/securities_GENERATED.go ./twstock/securities_GENERATED.go &&
-          go fmt ./twstock/securities_GENERATED.go
+        run: go run ./scripts/generate_securities.go && go fmt ./twstock/securities_GENERATED.go
 
-      - name: Ensure go generate produces a zero diff
+      - name: Ensure produces a zero diff
         shell: bash
         run: git diff --exit-code; code=$?; git checkout -- .; (exit $code)
-
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v29.0.2
-
-      - name: List all changed files
-        run: |
-          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            echo "$file was changed"
-          done

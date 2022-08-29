@@ -21,7 +21,7 @@ func format(w *os.File, v reflect.Value) {
 }
 
 func main() {
-	w, err := os.Create("/tmp/securities_GENERATED.go")
+	w, err := os.Create("./twstock/securities_GENERATED.go")
 	if err != nil {
 		log.Fatal(w)
 	}
