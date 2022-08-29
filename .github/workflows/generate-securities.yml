@@ -36,14 +36,12 @@ jobs:
       - name: Generate securities
         run: go run ./scripts/generate_securities.go && go fmt ./twstock/securities_GENERATED.go
 
-      - name: Get specific changed files
-        id: changed-files-specific
-        uses: tj-actions/changed-files@82edb42dc4e3a5d5edf24cc3ae4b1f55c20cc220 #v29.0.2
-        with:
-          files: |
-            securities_GENERATED.go
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v29.0.2
 
-      - name: Run step if any of the listed files above change
-        if: steps.changed-files-specific.outputs.any_changed == 'true'
+      - name: List all changed files
         run: |
-          echo "One or more files listed above has changed."
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "$file was changed"
+          done
