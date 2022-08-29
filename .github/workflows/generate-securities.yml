@@ -1,7 +1,10 @@
+# on:
+#   schedule:
+#     - cron: "0 0 * * 0"
 on:
-  schedule:
-    - cron: "0 0 * * 0"
-
+  push:
+    branches:
+      - gh-actions
 name: generate-securities
 
 jobs:
