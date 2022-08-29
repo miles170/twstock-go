@@ -1,0 +1,46 @@
+on:
+  schedule:
+    - cron: "0 0 * * 0"
+
+name: generate-securities
+
+jobs:
+  generate:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.x
+      - uses: actions/checkout@v3
+
+      # Get values for cache paths to be used in later steps
+      - id: cache-paths
+        run: |
+          echo "::set-output name=go-cache::$(go env GOCACHE)"
+          echo "::set-output name=go-mod-cache::$(go env GOMODCACHE)"
+      - name: Cache go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ steps.cache-paths.outputs.go-cache }}
+            ${{ steps.cache-paths.outputs.go-mod-cache }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+
+      - name: Generate securities
+        run: go run ./scripts/generate_securities.go && go fmt ./twstock/securities_GENERATED.go
+
+      - name: Get specific changed files
+        id: changed-files-specific
+        uses: tj-actions/changed-files@82edb42dc4e3a5d5edf24cc3ae4b1f55c20cc220 #v29.0.2
+        with:
+          files: |
+            securities_GENERATED.go
+
+      - name: Run step if any of the listed files above change
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        run: |
+          echo "One or more files listed above has changed."
