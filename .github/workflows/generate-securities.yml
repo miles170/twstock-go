@@ -39,8 +39,10 @@ jobs:
       - name: Check securities list changed
         id: check_list_changed
         shell: bash
-        run: git diff --exit-code; code=$?; echo "::set-output name=changed::${code}"
+        run: git diff --quiet --exit-code; code=$?; echo "::set-output name=changed::${code}"
 
-      - shell: bash
+      - name: Create Pull Request
+        id: cpr
+        shell: bash
         if: steps.check_list_changed.outputs.changed == 1
-        run: echo "CHANGED"
+        run: echo "Create Pull Request"
