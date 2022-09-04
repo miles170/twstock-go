@@ -43,6 +43,8 @@ jobs:
         uses: peter-evans/create-pull-request@18f90432bedd2afd6a825469ffd38aa24712a91d #v4.1.1
         with:
           token: ${{ secrets.PAT }}
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           commit-message: "[Scheduled] Update securities list"
           title: "[Scheduled] Update securities list"
           body: |
@@ -52,3 +54,5 @@ jobs:
           branch: cron-generate-securities-list
           delete-branch: true
           labels: GitHub Actions
+          assignees: miles170
+          reviewers: miles170
