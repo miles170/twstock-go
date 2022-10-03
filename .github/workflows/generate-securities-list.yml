@@ -40,7 +40,7 @@ jobs:
       - name: Create Pull Request
         id: cpr
         if: steps.check_list_changed.outputs.changed == 1
-        uses: peter-evans/create-pull-request@671dc9c9e0c2d73f07fa45a3eb0220e1622f0c5f #v4.1.2
+        uses: peter-evans/create-pull-request@671dc9c9e0c2d73f07fa45a3eb0220e1622f0c5f #v4.1.3
         with:
           token: ${{ secrets.PAT }}
           committer: GitHub <noreply@github.com>
