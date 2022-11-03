@@ -17,8 +17,8 @@ jobs:
       # Get values for cache paths to be used in later steps
       - id: cache-paths
         run: |
-          echo "::set-output name=go-cache::$(go env GOCACHE)"
-          echo "::set-output name=go-mod-cache::$(go env GOMODCACHE)"
+          echo "go-cache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "go-mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
       - name: Cache go modules
         uses: actions/cache@v3
         with:
@@ -35,7 +35,7 @@ jobs:
         id: check_list_changed
         shell: bash
         run: |
-          [ -z "$(git diff --name-only ./twstock/securities_GENERATED.go)" ] || echo "::set-output name=changed::1";
+          [ -z "$(git diff --name-only ./twstock/securities_GENERATED.go)" ] || echo "changed=1" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         id: cpr
