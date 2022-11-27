@@ -20,7 +20,7 @@ jobs:
       contents: read # for actions/checkout to fetch code
     strategy:
       matrix:
-        go-version: [1.x, 1.17.x]
+        go-version: [1.x, 1.18.x]
         platform: [ubuntu-latest]
         include:
           # only update test coverage stats with the most recent go version on linux
@@ -64,4 +64,3 @@ jobs:
       - name: Upload coverage to Codecov
         if: ${{ matrix.update-coverage }}
         uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70 #v3.1.1
-
