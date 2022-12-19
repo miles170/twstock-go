@@ -41,9 +41,9 @@ jobs:
         uses: crazy-max/ghaction-import-gpg@v5
         if: steps.check_list_changed.outputs.changed == 1
         with:
-          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          git-user-signingkey: true
-          git-commit-gpgsign: true
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
 
       - name: Create Pull Request
         id: cpr
