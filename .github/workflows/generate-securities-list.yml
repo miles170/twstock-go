@@ -48,7 +48,7 @@ jobs:
       - name: Create Pull Request
         id: cpr
         if: steps.check_list_changed.outputs.changed == 1
-        uses: peter-evans/create-pull-request@2b011faafdcbc9ceb11414d64d0573f37c774b04 #v4.2.3
+        uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54 #v4.2.4
         with:
           token: ${{ secrets.PAT }}
           committer: renovate[bot] <renovatebot@bung.cc>
