@@ -27,7 +27,7 @@ type Quote struct {
 
 const (
 	// 上市個股日成交資訊
-	twseQuotesPath = "/exchangeReport/STOCK_DAY"
+	twseQuotesPath = "/rwd/zh/afterTrading/STOCK_DAY"
 
 	// 上櫃個股日成交資訊
 	tpexQuotesPath = "/web/stock/aftertrading/daily_trading_info/st43_result.php"
