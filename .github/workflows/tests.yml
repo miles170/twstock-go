@@ -45,6 +45,9 @@ jobs:
         shell: bash
         run: go generate -x ./... && git diff --exit-code; code=$?; git checkout -- .; (exit $code)
 
+      - name: Run go integration test
+        run: go test -v ./test/integration
+
       - name: Run go test
         run: go test -v -race -coverprofile coverage.txt ./twstock
 
