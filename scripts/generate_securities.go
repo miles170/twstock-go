@@ -34,7 +34,6 @@ func main() {
 	}
 
 	fmt.Fprintf(w, "// Code generated security DO NOT EDIT.\n\n")
-	fmt.Fprintf(w, "//go:build !codeanalysis\n\n")
 	fmt.Fprintf(w, "package %s\n\n", "twstock")
 	fmt.Fprint(w, "import \"github.com/golang-sql/civil\"\n\n")
 	fmt.Fprintf(w, "var Securities = map[string]Security{\n")

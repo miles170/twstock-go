@@ -39,6 +39,7 @@ func testMethod(t *testing.T, r *http.Request, want string) {
 	}
 }
 
+//nolint:unparam
 func testErrorContains(t *testing.T, e error, want string) {
 	t.Helper()
 	if !strings.Contains(e.Error(), want) {
