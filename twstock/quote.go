@@ -162,10 +162,6 @@ func (s *QuoteService) MinimumDate(m Market) civil.Date {
 
 // 從台灣證卷交易所下載盤後個股日成交資訊
 func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]Quote, error) {
-	//nolint:typecheck
-	if security, ok := Securities[code]; !ok || security.Market != TWSE {
-		return nil, fmt.Errorf("invalid twse code: %s", code)
-	}
 	date := civil.Date{Year: year, Month: month, Day: 1}
 	if date.Before(s.MinimumDate(TWSE)) {
 		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
@@ -232,10 +228,6 @@ type tpexResponse struct {
 
 // 從證券櫃檯買賣中心下載盤後個股日成交資訊
 func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]Quote, error) {
-	//nolint:typecheck
-	if security, ok := Securities[code]; !ok || security.Market != TPEx {
-		return nil, fmt.Errorf("invalid tpex code: %s", code)
-	}
 	date := civil.Date{Year: year, Month: month, Day: 1}
 	if date.Before(s.MinimumDate(TPEx)) {
 		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
