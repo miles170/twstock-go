@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	Version = "1.1.2"
+	Version = "1.1.5"
 
 	defaultTwseBaseURL     = "https://www.twse.com.tw"
 	defaultTpexBaseURL     = "https://www.tpex.org.tw"
