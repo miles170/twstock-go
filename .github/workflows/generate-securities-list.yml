@@ -25,7 +25,7 @@ jobs:
         run: git diff --exit-code ./twstock/securities_GENERATED.go || echo "changed=1" >> $GITHUB_OUTPUT
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v5
+        uses: crazy-max/ghaction-import-gpg@v6
         if: steps.check_list_changed.outputs.changed == 1
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
