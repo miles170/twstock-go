@@ -3,7 +3,7 @@ module github.com/miles170/twstock-go
 go 1.17
 
 require (
-	github.com/PuerkitoBio/goquery v1.9.0
+	github.com/PuerkitoBio/goquery v1.9.1
 	golang.org/x/text v0.14.0
 )
 
