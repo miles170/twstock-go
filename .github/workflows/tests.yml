@@ -12,7 +12,7 @@ env:
   GO111MODULE: on
 
 concurrency:
-  group: "tests-${{ github.ref }}"
+  group: ${{ github.repository }}-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -20,9 +20,6 @@ permissions:
 
 jobs:
   test:
-    permissions:
-      actions: write # for styfle/cancel-workflow-action to cancel/stop running workflows
-      contents: read # for actions/checkout to fetch code
     strategy:
       matrix:
         go-version: [1.x, 1.21.x]
@@ -35,21 +32,35 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
+      - uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go-version }}
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
+      # Get values for cache paths to be used in later steps
+      - id: cache-paths
+        run: |
+          echo "go-cache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "go-mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
+
+      - name: Cache go modules
+        uses: actions/cache@v4
         with:
-          go-version: ${{ matrix.go-version }}
+          path: |
+            ${{ steps.cache-paths.outputs.go-cache }}
+            ${{ steps.cache-paths.outputs.go-mod-cache }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go
 
       - name: Ensure go generate produces a zero diff
         shell: bash
         run: go generate -x ./... && git diff --exit-code; code=$?; git checkout -- .; (exit $code)
 
-      - name: Run go integration test
-        run: go test -p 1 -v ./test/integration
-
       - name: Run go test
         run: go test -v -race -coverprofile coverage.txt ./twstock
+
+      - name: Run go integration test
+        run: go test -p 1 -v ./test/integration
 
       - name: Upload coverage to Codecov
         if: ${{ matrix.update-coverage }}
