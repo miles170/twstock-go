@@ -1,9 +1,11 @@
 module github.com/miles170/twstock-go
 
-go 1.21
+go 1.23
+
+toolchain go1.23.1
 
 require (
-	github.com/PuerkitoBio/goquery v1.9.2
+	github.com/PuerkitoBio/goquery v1.10.0
 	golang.org/x/text v0.18.0
 )
 
@@ -13,5 +15,5 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-querystring v1.1.0
 	github.com/shopspring/decimal v1.4.0
-	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/net v0.29.0 // indirect
 )
