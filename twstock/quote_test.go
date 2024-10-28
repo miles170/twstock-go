@@ -362,70 +362,93 @@ func TestQuoteService_DownloadTpex(t *testing.T) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `
 		{
-			"stkNo": "3374",
-			"stkName": "精材            ",
+			"tables": [
+				{
+					"title": "個股日成交資訊",
+					"subtitle": "3374 精材 111年08月",
+					"date": "20220801",
+					"data": [
+						[
+							"111/08/01",
+							"1,328",
+							"168,265",
+							"127.50",
+							"128.00",
+							"125.50",
+							"127.00",
+							"-2.00",
+							"1,272"
+						],
+						[
+							"111/08/02",
+							"1,593",
+							"199,305",
+							"125.00",
+							"127.00",
+							"123.00",
+							"127.00",
+							"0.00",
+							"1,078"
+						],
+						[
+							"111/08/03",
+							"1,603",
+							"201,304",
+							"124.50",
+							"127.00",
+							"124.00",
+							"126.00",
+							"-1.00",
+							"1,124"
+						],
+						[
+							"111/08/04",
+							"3,920",
+							"500,389",
+							"126.50",
+							"130.00",
+							"124.50",
+							"129.50",
+							"3.50",
+							"2,474"
+						],
+						[
+							"111/08/05",
+							"7,244",
+							"940,126",
+							"129.50",
+							"132.00",
+							"126.50",
+							"129.50",
+							"0.00",
+							"5,073"
+						]
+					],
+					"fields": [
+						"日 期",
+						"成交仟股",
+						"成交仟元",
+						"開盤",
+						"最高",
+						"最低",
+						"收盤",
+						"漲跌",
+						"筆數"
+					],
+					"notes": [
+						"以上資料不含上櫃股票鉅額交易"
+					],
+					"totalCount": 5,
+					"summary": []
+				}
+			],
+			"date": "20220801",
+			"code": "3374",
+			"name": "精材",
 			"showListPriceNote": false,
 			"showListPriceLink": false,
-			"reportDate": "111/08",
-			"iTotalRecords": 5,
-			"aaData": [
-			  [
-				"111/08/01",
-				"1,328",
-				"168,265",
-				"127.50",
-				"128.00",
-				"125.50",
-				"127.00",
-				"-2.00",
-				"1,272"
-			  ],
-			  [
-				"111/08/02",
-				"1,593",
-				"199,305",
-				"125.00",
-				"127.00",
-				"123.00",
-				"127.00",
-				"0.00",
-				"1,078"
-			  ],
-			  [
-				"111/08/03",
-				"1,603",
-				"201,304",
-				"124.50",
-				"127.00",
-				"124.00",
-				"126.00",
-				"-1.00",
-				"1,124"
-			  ],
-			  [
-				"111/08/04",
-				"3,920",
-				"500,389",
-				"--",
-				"130.00",
-				"124.50",
-				"129.50",
-				"3.50",
-				"2,474"
-			  ],
-			  [
-				"111/08/05",
-				"7,244",
-				"940,126",
-				"129.50",
-				"132.00",
-				"126.50",
-				"129.50",
-				"0.00",
-				"5,073"
-			  ]
-			]
-		  }`)
+			"stat": "ok"
+		}`)
 	})
 
 	quotes, err := client.Quote.Download("3374", 2022, 8)
@@ -456,6 +479,14 @@ func TestQuoteService_DownloadTpex(t *testing.T) {
 			Low:    decimal.NewFromFloat(124),
 			Close:  decimal.NewFromFloat(126),
 			Volume: 1603000,
+		},
+		{
+			Date:   civil.Date{Year: 2022, Month: time.August, Day: 4},
+			Open:   decimal.NewFromFloat(126.5),
+			High:   decimal.NewFromFloat(130),
+			Low:    decimal.NewFromFloat(124.5),
+			Close:  decimal.NewFromFloat(129.5),
+			Volume: 3920000,
 		},
 		{
 			Date:   civil.Date{Year: 2022, Month: time.August, Day: 5},
@@ -505,12 +536,63 @@ func TestQuoteService_DownloadTpexErrNoData(t *testing.T) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `
 		{
-			"stkNo": "3374",
-			"stkName": "精材            ",
+			"tables": [],
+			"date": "20220801",
+			"code": "3374",
+			"name": "精材",
 			"showListPriceNote": false,
 			"showListPriceLink": false,
-			"reportDate": "111/08",
-			"iTotalRecords": 0
+			"stat": "ok"
+		}`)
+	})
+
+	_, err := client.Quote.Download("3374", 2022, 8)
+	if err == nil {
+		t.Errorf("Quote.Download returned nil; expected error")
+	}
+	if !errors.Is(err, ErrNoData) {
+		t.Errorf("Quote.Download returned %v, want %v", err, ErrNoData)
+	}
+}
+
+func TestQuoteService_DownloadTpexErrNoData2(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(tpexQuotesPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		{
+			"tables": [
+				{
+					"title": "個股日成交資訊",
+					"subtitle": "3374 精材 111年08月",
+					"date": "20220801",
+					"data": [],
+					"fields": [
+						"日 期",
+						"成交仟股",
+						"成交仟元",
+						"開盤",
+						"最高",
+						"最低",
+						"收盤",
+						"漲跌",
+						"筆數"
+					],
+					"notes": [
+						"以上資料不含上櫃股票鉅額交易"
+					],
+					"totalCount": 0,
+					"summary": []
+				}
+			],
+			"date": "20220801",
+			"code": "3374",
+			"name": "精材",
+			"showListPriceNote": false,
+			"showListPriceLink": false,
+			"stat": "ok"
 		}`)
 	})
 
@@ -531,14 +613,14 @@ func TestQuoteService_DownloadBadCode(t *testing.T) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `
 		{
-			"stkNo": "3375",
-			"stkName": "精材            ",
+			"tables": [],
+			"date": "20220801",
+			"code": "3375",
+			"name": "精材",
 			"showListPriceNote": false,
 			"showListPriceLink": false,
-			"reportDate": "111/08",
-			"iTotalRecords": 5,
-			"aaData": []
-		  }`)
+			"stat": "ok"
+		}`)
 	})
 
 	_, err := client.Quote.DownloadTpex("3374", 2022, 8)
@@ -555,14 +637,37 @@ func TestQuoteService_DownloadBadDataLength(t *testing.T) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `
 		{
-			"stkNo": "3374",
-			"stkName": "精材            ",
+			"tables": [
+				{
+					"title": "個股日成交資訊",
+					"subtitle": "3374 精材 111年08月",
+					"date": "20220801",
+					"data": [],
+					"fields": [
+						"日 期",
+						"成交仟股",
+						"成交仟元",
+						"開盤",
+						"最高",
+						"最低",
+						"收盤",
+						"漲跌",
+						"筆數"
+					],
+					"notes": [
+						"以上資料不含上櫃股票鉅額交易"
+					],
+					"totalCount": 23,
+					"summary": []
+				}
+			],
+			"date": "20220801",
+			"code": "3374",
+			"name": "精材",
 			"showListPriceNote": false,
 			"showListPriceLink": false,
-			"reportDate": "111/08",
-			"iTotalRecords": 5,
-			"aaData": []
-		  }`)
+			"stat": "ok"
+		}`)
 	})
 
 	_, err := client.Quote.DownloadTpex("3374", 2022, 8)
@@ -579,27 +684,50 @@ func TestQuoteService_DownloadBadFieldCount(t *testing.T) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `
 		{
-			"stkNo": "3374",
-			"stkName": "精材            ",
+			"tables": [
+				{
+					"title": "個股日成交資訊",
+					"subtitle": "3374 精材 111年08月",
+					"date": "20220801",
+					"data": [
+						[
+							"111/08/01",
+							"1,328",
+							"168,265",
+							"127.50",
+							"128.00",
+							"125.50",
+							"127.00",
+							"-2.00",
+							"1,272",
+							""
+						]
+					],
+					"fields": [
+						"日 期",
+						"成交仟股",
+						"成交仟元",
+						"開盤",
+						"最高",
+						"最低",
+						"收盤",
+						"漲跌",
+						"筆數"
+					],
+					"notes": [
+						"以上資料不含上櫃股票鉅額交易"
+					],
+					"totalCount": 1,
+					"summary": []
+				}
+			],
+			"date": "20220801",
+			"code": "3374",
+			"name": "精材",
 			"showListPriceNote": false,
 			"showListPriceLink": false,
-			"reportDate": "111/08",
-			"iTotalRecords": 1,
-			"aaData": [
-				[
-					"111/08/01",
-					"1,328",
-					"168,265",
-					"127.50",
-					"128.00",
-					"125.50",
-					"127.00",
-					"-2.00",
-					"1,272",
-					""
-				]
-			]
-		  }`)
+			"stat": "ok"
+		}`)
 	})
 
 	_, err := client.Quote.DownloadTpex("3374", 2022, 8)
@@ -616,25 +744,49 @@ func TestQuoteService_DownloadBadData(t *testing.T) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `
 		{
-			"stkNo": "3374",
-			"stkName": "精材            ",
+			"tables": [
+				{
+					"title": "個股日成交資訊",
+					"subtitle": "3374 精材 111年08月",
+					"date": "20220801",
+					"data": [
+						[
+							"111/08/01",
+							"1,328",
+							"168,265",
+							"BADDATA",
+							"128.00",
+							"125.50",
+							"127.00",
+							"-2.00",
+							"1,272",
+							""
+						]
+					],
+					"fields": [
+						"日 期",
+						"成交仟股",
+						"成交仟元",
+						"開盤",
+						"最高",
+						"最低",
+						"收盤",
+						"漲跌",
+						"筆數"
+					],
+					"notes": [
+						"以上資料不含上櫃股票鉅額交易"
+					],
+					"totalCount": 1,
+					"summary": []
+				}
+			],
+			"date": "20220801",
+			"code": "3374",
+			"name": "精材",
 			"showListPriceNote": false,
 			"showListPriceLink": false,
-			"reportDate": "111/08",
-			"iTotalRecords": 1,
-			"aaData": [
-			  [
-				"111/08/01",
-				"1,328",
-				"168,265",
-				"BADDATA",
-				"128.00",
-				"125.50",
-				"127.00",
-				"-2.00",
-				"1,272"
-			  ]
-			]
+			"stat": "ok"
 		}`)
 	})
 

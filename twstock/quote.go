@@ -30,7 +30,7 @@ const (
 	twseQuotesPath = "/rwd/zh/afterTrading/STOCK_DAY"
 
 	// 上櫃個股日成交資訊
-	tpexQuotesPath = "/web/stock/aftertrading/daily_trading_info/st43_result.php"
+	tpexQuotesPath = "/www/zh-tw/afterTrading/tradingStock"
 
 	// 個股即時交易行情
 	realtimeQuotesPath = "/stock/api/getStockInfo.jsp"
@@ -214,16 +214,43 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 }
 
 type tpexOptions struct {
-	Date string `url:"d"`
-	Code string `url:"stkno,omitempty"`
+	Response string `url:"response"`
+	Date     string `url:"date"`
+	Code     string `url:"code,omitempty"`
+}
+
+type StringOrNumber string
+
+func (s *StringOrNumber) UnmarshalJSON(data []byte) error {
+	// Try unmarshaling as string first
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		*s = StringOrNumber(str)
+		return nil
+	}
+
+	// If that fails, try as number
+	var num float64
+	if err := json.Unmarshal(data, &num); err == nil {
+		*s = StringOrNumber(strconv.FormatFloat(num, 'f', -1, 64))
+		return nil
+	}
+
+	return fmt.Errorf("value must be string or number")
 }
 
 type tpexResponse struct {
-	Code       string     `json:"stkNo"`
-	Name       string     `json:"stkName"`
-	Date       string     `json:"reportDate"`
-	DataLength int        `json:"iTotalRecords"`
-	Data       [][]string `json:"aaData"`
+	Stat   string `json:"stat"`
+	Date   string `json:"date"`
+	Code   string `json:"code"`
+	Tables []struct {
+		Title      string             `json:"title"`
+		Date       string             `json:"date"`
+		Data       [][]StringOrNumber `json:"data"`
+		Fields     []string           `json:"fields"`
+		Notes      []string           `json:"notes"`
+		TotalCount int                `json:"totalCount"`
+	} `json:"tables"`
 }
 
 // 從證券櫃檯買賣中心下載盤後個股日成交資訊
@@ -234,9 +261,9 @@ func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]
 	}
 	url, _ := s.client.tpexBaseURL.Parse(tpexQuotesPath)
 	opts := tpexOptions{
-		// 需要將西元年轉為民國年
-		Date: fmt.Sprintf("%d/%02d", date.Year-1911, date.Month),
-		Code: code,
+		Response: "json",
+		Date:     fmt.Sprintf("%04d/%02d/%02d", date.Year, date.Month, date.Day),
+		Code:     code,
 	}
 	url, _ = addOptions(url, opts)
 	req, _ := s.client.NewRequest("GET", url.String(), nil)
@@ -248,18 +275,22 @@ func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]
 	if resp.Code != code {
 		return nil, fmt.Errorf("invalid tpex code returned %s, want %s", resp.Code, code)
 	}
-	if resp.DataLength != len(resp.Data) {
-		return nil, fmt.Errorf("failed parsing quote data length returned %d, want %d", resp.DataLength, len(resp.Data))
-	}
-	if resp.DataLength == 0 {
+	if len(resp.Tables) != 1 || resp.Tables[0].TotalCount == 0 {
 		return nil, ErrNoData
 	}
+	if resp.Tables[0].TotalCount != len(resp.Tables[0].Data) {
+		return nil, fmt.Errorf("failed parsing quote data length returned %d, want %d", resp.Tables[0].TotalCount, len(resp.Tables[0].Data))
+	}
 	quotes := []Quote{}
-	for _, data := range resp.Data {
+	for _, data := range resp.Tables[0].Data {
 		if len(data) != 9 {
 			return nil, fmt.Errorf("failed parsing quote fields")
 		}
-		quote, err := s.parse(data)
+		stringData := make([]string, len(data))
+		for i, v := range data {
+			stringData[i] = string(v)
+		}
+		quote, err := s.parse(stringData)
 		if err != nil {
 			if errors.Is(err, errSuspendedTrading) {
 				continue
