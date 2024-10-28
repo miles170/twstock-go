@@ -18,7 +18,7 @@ const (
 	twseMarketDataPath = "/exchangeReport/FMTQIK"
 
 	// 上櫃每日市場成交資訊
-	tpexMarketDataPath = "/web/stock/aftertrading/daily_trading_index/st41_result.php"
+	tpexMarketDataPath = "/www/zh-tw/afterTrading/tradingIndex"
 )
 
 type MarketData struct {
@@ -130,8 +130,8 @@ func (s *MarketDataService) DownloadTpex(year int, month time.Month) ([]MarketDa
 	}
 	url, _ := s.client.tpexBaseURL.Parse(tpexMarketDataPath)
 	opts := tpexOptions{
-		// 需要將西元年轉為民國年
-		Date: fmt.Sprintf("%d/%02d", date.Year-1911, date.Month),
+		Response: "json",
+		Date:     fmt.Sprintf("%04d/%02d/%02d", date.Year, date.Month, date.Day),
 	}
 	url, _ = addOptions(url, opts)
 	req, _ := s.client.NewRequest("GET", url.String(), nil)
@@ -140,18 +140,26 @@ func (s *MarketDataService) DownloadTpex(year int, month time.Month) ([]MarketDa
 	if err != nil {
 		return nil, err
 	}
-	if resp.DataLength != len(resp.Data) {
-		return nil, fmt.Errorf("failed parsing market data length returned %d, want %d", resp.DataLength, len(resp.Data))
-	}
-	if resp.DataLength == 0 {
+	if len(resp.Tables) != 1 || resp.Tables[0].TotalCount == 0 {
 		return nil, ErrNoData
 	}
+	if resp.Tables[0].TotalCount != len(resp.Tables[0].Data) {
+		return nil, fmt.Errorf("failed parsing market data length returned %d, want %d", resp.Tables[0].TotalCount, len(resp.Tables[0].Data))
+	}
 	result := []MarketData{}
-	for _, data := range resp.Data {
-		marketData, err := s.parse(data)
+	for _, data := range resp.Tables[0].Data {
+		stringData := make([]string, len(data))
+		for i, v := range data {
+			stringData[i] = string(v)
+		}
+		marketData, err := s.parse(stringData)
 		if err != nil {
 			return nil, err
 		}
+		// 成交股數（仟股）
+		marketData.TradeVolume *= 1000
+		// 金額（仟元）
+		marketData.TradeValue = marketData.TradeValue.Mul(decimal.NewFromInt(1000))
 		result = append(result, marketData)
 	}
 	return result, nil

@@ -304,50 +304,70 @@ func TestMarketDataService_DownloadTpex(t *testing.T) {
 	mux.HandleFunc(tpexMarketDataPath, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `{
-			"reportDate": "111/08",
-			"iTotalRecords": 5,
-			"aaData": [
-				[
-					"111/08/01",
-					"630,222,871",
-					"46,240,795,178",
-					"436,953",
-					"182.75",
-					"-0.83"
-				],
-				[
-					"111/08/02",
-					"694,614,949",
-					"51,249,692,749",
-					"484,905",
-					"179.30",
-					"-3.45"
-				],
-				[
-					"111/08/03",
-					"683,637,182",
-					"50,799,048,121",
-					"473,344",
-					"178.17",
-					"-1.13"
-				],
-				[
-					"111/08/04",
-					"677,879,834",
-					"51,578,056,349",
-					"458,468",
-					"178.18",
-					"0.01"
-				],
-				[
-					"111/08/05",
-					"651,963,371",
-					"57,144,930,041",
-					"435,858",
-					"182.37",
-					"4.19"
-				]
-			]
+			"tables": [
+				{
+					"title": "日成交量值指數",
+					"date": "20220801",
+					"data": [
+						[
+							"111/08/01",
+							"630,223",
+							"46,240,795",
+							"436,953",
+							182.75,
+							-0.83
+						],
+						[
+							"111/08/02",
+							"694,615",
+							"51,249,693",
+							"484,905",
+							179.30,
+							-3.45
+						],
+						[
+							"111/08/03",
+							"683,637",
+							"50,799,048",
+							"473,344",
+							178.17,
+							-1.13
+						],
+						[
+							"111/08/04",
+							"677,880",
+							"51,578,056",
+							"458,468",
+							178.18,
+							0.01
+						],
+						[
+							"111/08/05",
+							"651,963",
+							"57,144,930",
+							"435,858",
+							182.37,
+							4.19
+						]
+					],
+					"fields": [
+						"日期",
+						"成交股數（仟股）",
+						"金額（仟元）",
+						"筆數",
+						"櫃買指數",
+						"漲/跌"
+					],
+					"notes": [
+						"上表為於等價、零股、盤後定價等交易系統交易之上櫃股票成交資訊。",
+						"每日下午6:00另行產製於等價、零股、盤後定價、鉅額等交易系統交易之上櫃股票、權證、TDR、ETF、ETN、受益證券等上櫃有價證券之成交資訊，但不含轉(交)換公司債之成交統計報表，如<a href=\"daily-indices-rpk.html\">連結</a>"
+					],
+					"totalCount": 5,
+					"summary": []
+				}
+			],
+			"date": "20220801",
+			"stat": "ok"
 		}`)
 	})
 
@@ -358,40 +378,40 @@ func TestMarketDataService_DownloadTpex(t *testing.T) {
 	want := []MarketData{
 		{
 			Date:        civil.Date{Year: 2022, Month: time.August, Day: 1},
-			TradeVolume: 630222871,
-			TradeValue:  decimal.NewFromInt(46240795178),
+			TradeVolume: 630223000,
+			TradeValue:  decimal.NewFromInt(46240795000),
 			Transaction: 436953,
 			Index:       decimal.NewFromFloat(182.75),
 			Change:      decimal.NewFromFloat(-0.83),
 		},
 		{
 			Date:        civil.Date{Year: 2022, Month: time.August, Day: 2},
-			TradeVolume: 694614949,
-			TradeValue:  decimal.NewFromInt(51249692749),
+			TradeVolume: 694615000,
+			TradeValue:  decimal.NewFromInt(51249693000),
 			Transaction: 484905,
 			Index:       decimal.NewFromFloat(179.30),
 			Change:      decimal.NewFromFloat(-3.45),
 		},
 		{
 			Date:        civil.Date{Year: 2022, Month: time.August, Day: 3},
-			TradeVolume: 683637182,
-			TradeValue:  decimal.NewFromInt(50799048121),
+			TradeVolume: 683637000,
+			TradeValue:  decimal.NewFromInt(50799048000),
 			Transaction: 473344,
 			Index:       decimal.NewFromFloat(178.17),
 			Change:      decimal.NewFromFloat(-1.13),
 		},
 		{
 			Date:        civil.Date{Year: 2022, Month: time.August, Day: 4},
-			TradeVolume: 677879834,
-			TradeValue:  decimal.NewFromInt(51578056349),
+			TradeVolume: 677880000,
+			TradeValue:  decimal.NewFromInt(51578056000),
 			Transaction: 458468,
 			Index:       decimal.NewFromFloat(178.18),
 			Change:      decimal.NewFromFloat(0.01),
 		},
 		{
 			Date:        civil.Date{Year: 2022, Month: time.August, Day: 5},
-			TradeVolume: 651963371,
-			TradeValue:  decimal.NewFromInt(57144930041),
+			TradeVolume: 651963000,
+			TradeValue:  decimal.NewFromInt(57144930000),
 			Transaction: 435858,
 			Index:       decimal.NewFromFloat(182.37),
 			Change:      decimal.NewFromFloat(4.19),
@@ -430,9 +450,36 @@ func TestMarketDataService_DownloadTpexErrNoData(t *testing.T) {
 	mux.HandleFunc(tpexMarketDataPath, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `{
-			"reportDate": "111/08",
-			"iTotalRecords": 0,
-			"aaData": []
+			"date": "20220801",
+			"stat": "ok",
+			"tables": []
+		}`)
+	})
+
+	_, err := client.MarketData.DownloadTpex(2022, 8)
+	if err == nil {
+		t.Error("MarketData.DownloadTpex returned nil; expected error")
+	}
+	if !errors.Is(err, ErrNoData) {
+		t.Errorf("MarketData.DownloadTpex returned %v, want %v", err, ErrNoData)
+	}
+}
+
+func TestMarketDataService_DownloadTpexErrNoData2(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(tpexMarketDataPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{
+			"date": "20220801",
+			"stat": "ok",
+			"tables": [
+				{
+					"data": [],
+					"totalCount": 0
+				}
+			]
 		}`)
 	})
 
@@ -452,9 +499,14 @@ func TestMarketDataService_DownloadTpexBadDataLength(t *testing.T) {
 	mux.HandleFunc(tpexMarketDataPath, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `{
-			"reportDate": "111/08",
-			"iTotalRecords": 1,
-			"aaData": []
+			"tables": [
+				{
+					"data": [],
+					"totalCount": 1
+				}
+			],
+			"date": "20220801",
+			"stat": "ok"
 		}`)
 	})
 
@@ -471,18 +523,38 @@ func TestMarketDataService_DownloadTpexBadData(t *testing.T) {
 	mux.HandleFunc(tpexMarketDataPath, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `{
-			"reportDate": "111/08",
-			"iTotalRecords": 1,
-			"aaData": [
-				[
-					"111/30/01",
-					"630,222,871",
-					"46,240,795,178",
-					"436,953",
-					"182.75",
-					"-0.83"
-				]
-			]
+			"tables": [
+				{
+					"title": "日成交量值指數",
+					"date": "20220801",
+					"data": [
+						[
+							"111/08/01",
+							"BADDATA",
+							"46,240,795",
+							"436,953",
+							182.75,
+							-0.83
+						]
+					],
+					"fields": [
+						"日期",
+						"成交股數（仟股）",
+						"金額（仟元）",
+						"筆數",
+						"櫃買指數",
+						"漲/跌"
+					],
+					"notes": [
+						"上表為於等價、零股、盤後定價等交易系統交易之上櫃股票成交資訊。",
+						"每日下午6:00另行產製於等價、零股、盤後定價、鉅額等交易系統交易之上櫃股票、權證、TDR、ETF、ETN、受益證券等上櫃有價證券之成交資訊，但不含轉(交)換公司債之成交統計報表，如<a href=\"daily-indices-rpk.html\">連結</a>"
+					],
+					"totalCount": 1,
+					"summary": []
+				}
+			],
+			"date": "20220801",
+			"stat": "ok"
 		}`)
 	})
 
