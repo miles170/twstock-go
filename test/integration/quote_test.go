@@ -24,6 +24,10 @@ func TestQuote_DownloadTpex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DownloadTpex returned error: %v", err)
 	}
+	_, err = client.Quote.DownloadTpex("4772", 2024, 9)
+	if err != nil {
+		t.Fatalf("DownloadTpex returned error: %v", err)
+	}
 	_, err = client.Quote.DownloadTpex("2330", 2022, 12)
 	if err != twstock.ErrNoData {
 		t.Fatalf("DownloadTpex error should be %v got %v", twstock.ErrNoData, err)

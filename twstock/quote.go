@@ -76,7 +76,7 @@ func parseDate(s string) (civil.Date, error) {
 		return date, fmt.Errorf("failed parsing quote date: %w", err)
 	}
 	// 櫃買中心的日期在 IPO 那天結果會有＊
-	day, err := strconv.Atoi(strings.TrimRight(rawDate[2], "＊"))
+	day, err := strconv.Atoi(strings.TrimRight(rawDate[2], "＊*"))
 	if err != nil {
 		return date, fmt.Errorf("failed parsing quote date: %w", err)
 	}
