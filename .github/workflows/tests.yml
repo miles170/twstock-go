@@ -57,7 +57,7 @@ jobs:
         run: go generate -x ./... && git diff --exit-code; code=$?; git checkout -- .; (exit $code)
 
       - name: Run go test
-        run: go test -v -race -coverprofile coverage.txt ./twstock
+        run: go test -v -race -covermode atomic -coverprofile coverage.txt ./twstock
 
       - name: Run go integration test
         run: go test -p 1 -v ./test/integration

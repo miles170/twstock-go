@@ -821,8 +821,7 @@ func TestQuoteService_DownloadBadData(t *testing.T) {
 							"125.50",
 							"127.00",
 							"-2.00",
-							"1,272",
-							""
+							"1,272"
 						]
 					],
 					"fields": [
