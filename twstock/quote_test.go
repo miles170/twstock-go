@@ -605,6 +605,68 @@ func TestQuoteService_DownloadTpexErrNoData2(t *testing.T) {
 	}
 }
 
+func TestQuoteService_DownloadTpexErrSuspendedTrading(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(tpexQuotesPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		{
+			"tables": [
+				{
+					"title": "個股日成交資訊",
+					"subtitle": "3374 精材 111年08月",
+					"date": "20220801",
+					"data": [
+						[
+							"111/08/01",
+							"1,328",
+							"168,265",
+							"--",
+							"--",
+							"--",
+							"--",
+							"-2.00",
+							"1,272"
+						]
+					],
+					"fields": [
+						"日 期",
+						"成交仟股",
+						"成交仟元",
+						"開盤",
+						"最高",
+						"最低",
+						"收盤",
+						"漲跌",
+						"筆數"
+					],
+					"notes": [
+						"以上資料不含上櫃股票鉅額交易"
+					],
+					"totalCount": 1,
+					"summary": []
+				}
+			],
+			"date": "20220801",
+			"code": "3374",
+			"name": "精材",
+			"showListPriceNote": false,
+			"showListPriceLink": false,
+			"stat": "ok"
+		}`)
+	})
+
+	quotes, err := client.Quote.Download("3374", 2022, 8)
+	if err != nil {
+		t.Errorf("Quote.Download returned error: %v", err)
+	}
+	if len(quotes) != 0 {
+		t.Errorf("Quote.Download returned %d quotes, want 0", len(quotes))
+	}
+}
+
 func TestQuoteService_DownloadBadCode(t *testing.T) {
 	client, mux, teardown := setup()
 	defer teardown()
@@ -1297,5 +1359,43 @@ func TestQuoteService_RealtimeBadContent(t *testing.T) {
 	_, err := client.Quote.Realtime("2330", "3374")
 	if err == nil {
 		t.Error("Quote.Realtime returned nil; expected error")
+	}
+}
+
+func TestStringOrNumber_UnmarshalJSON(t *testing.T) {
+	var testCases = map[string]struct {
+		data      []byte
+		want      StringOrNumber
+		wantError bool
+	}{
+		"valid string": {
+			data:      []byte(`"valid"`),
+			want:      StringOrNumber("valid"),
+			wantError: false,
+		},
+		"valid number": {
+			data:      []byte(`3.14159265359`),
+			want:      StringOrNumber("3.14159265359"),
+			wantError: false,
+		},
+		"invalid type": {
+			data:      []byte(`false`),
+			wantError: true,
+		},
+	}
+	for name, test := range testCases {
+		t.Run(name, func(t *testing.T) {
+			var s StringOrNumber
+			err := s.UnmarshalJSON(test.data)
+			if err != nil && !test.wantError {
+				t.Errorf("StringOrNumber.UnmarshalJSON returned an error when we expected nil")
+			}
+			if err == nil && test.wantError {
+				t.Errorf("StringOrNumber.UnmarshalJSON returned no error when we expected one")
+			}
+			if !cmp.Equal(test.want, s) {
+				t.Errorf("StringOrNumber.UnmarshalJSON expected date %v, got %v", test.want, s)
+			}
+		})
 	}
 }
