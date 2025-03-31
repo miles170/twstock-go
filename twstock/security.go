@@ -74,11 +74,14 @@ func (s *SecurityService) download(url string, t transform.Transformer) ([]Secur
 			}
 			var market Market
 			marketText := strings.TrimSpace(elements.Eq(3).Text())
-			if marketText == "上市" || marketText == "上市臺灣創新板" {
+			switch marketText {
+			case "上市":
 				market = TWSE
-			} else if marketText == "上櫃" {
+			case "上市臺灣創新板":
+				market = TWSE
+			case "上櫃":
 				market = TPEx
-			} else {
+			default:
 				err = fmt.Errorf("failed parsing security market: %s", marketText)
 				return false
 			}

@@ -180,12 +180,14 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 		return nil, err
 	}
 	if resp.Stat != "OK" {
-		if resp.Stat == "很抱歉，沒有符合條件的資料!" {
+		switch resp.Stat {
+		case "很抱歉，沒有符合條件的資料!":
 			return nil, ErrNoData
-		} else if resp.Stat == "查詢日期大於今日，請重新查詢!" {
+		case "查詢日期大於今日，請重新查詢!":
 			return nil, ErrDateOutOffRange
+		default:
+			return nil, fmt.Errorf("invalid state: %s", resp.Stat)
 		}
-		return nil, fmt.Errorf("invalid state: %s", resp.Stat)
 	}
 	if len(resp.Fields) != 9 ||
 		resp.Fields[0] != "日期" ||
@@ -308,10 +310,13 @@ func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]
 func (s *QuoteService) Download(code string, year int, month time.Month) ([]Quote, error) {
 	//nolint:typecheck
 	if security, ok := Securities[code]; ok {
-		if security.Market == TWSE {
+		switch security.Market {
+		case TWSE:
 			return s.DownloadTwse(code, year, month)
-		} else if security.Market == TPEx {
+		case TPEx:
 			return s.DownloadTpex(code, year, month)
+		default:
+			return nil, fmt.Errorf("invalid market: %s", security.Market)
 		}
 	}
 	return nil, fmt.Errorf("invalid code: %s", code)
