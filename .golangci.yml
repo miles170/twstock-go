@@ -1,25 +1,37 @@
-run:
-  timeout: 10m
+version: "2"
 linters:
   enable:
     - dogsled
     - dupl
-    - gofmt
-    - goimports
     - gosec
     - misspell
     - nakedret
-    - stylecheck
+    - staticcheck
     - unconvert
     - unparam
     - whitespace
-    - errcheck
-    - gosimple
-    - staticcheck
-    - ineffassign
-    - unused
-issues:
-  exclude-rules:
-    - linters:
-        - dupl
-      path: _test\.go
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - dupl
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

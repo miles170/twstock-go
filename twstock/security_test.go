@@ -19,7 +19,8 @@ func TestSecurityService_Download(t *testing.T) {
 		enc := traditionalchinese.Big5.NewEncoder()
 		raw := ""
 		mode := r.FormValue("strMode")
-		if mode == "2" {
+		switch mode {
+		case "2":
 			raw = `
 			<link rel="stylesheet" href="http://isin.twse.com.tw/isin/style1.css" type="text/css">
 			<body>
@@ -59,7 +60,7 @@ func TestSecurityService_Download(t *testing.T) {
 				</tr>
 			</table>
 			<font color='red'><center>掛牌日以正式公告為準</center></font>`
-		} else if mode == "4" {
+		case "4":
 			raw = `
 			<link rel="stylesheet" href="http://isin.twse.com.tw/isin/style1.css" type="text/css">
 			<body>
@@ -99,6 +100,8 @@ func TestSecurityService_Download(t *testing.T) {
 				</tr>
 			</table>
 			<font color='red'><center>掛牌日以正式公告為準</center></font>`
+		default:
+			raw = ""
 		}
 		s, err := enc.String(raw)
 		if err == nil {
