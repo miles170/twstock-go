@@ -6,7 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.2
-	golang.org/x/text v0.23.0
+	golang.org/x/text v0.24.0
 )
 
 require (
