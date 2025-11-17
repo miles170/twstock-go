@@ -5,8 +5,8 @@ go 1.24.0
 toolchain go1.24.1
 
 require (
-	github.com/PuerkitoBio/goquery v1.10.3
-	golang.org/x/text v0.30.0
+	github.com/PuerkitoBio/goquery v1.11.0
+	golang.org/x/text v0.31.0
 )
 
 require (
@@ -15,5 +15,5 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-querystring v1.1.0
 	github.com/shopspring/decimal v1.4.0
-	golang.org/x/net v0.39.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
 )
