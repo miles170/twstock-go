@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       # Get values for cache paths to be used in later steps
       - id: cache-paths
