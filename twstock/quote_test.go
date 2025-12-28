@@ -32,7 +32,8 @@ func TestQuoteService_DownloadTwse(t *testing.T) {
 			  "最低價",
 			  "收盤價",
 			  "漲跌價差",
-			  "成交筆數"
+			  "成交筆數",
+			  "註記"
 			],
 			"data": [
 			  [
@@ -44,7 +45,8 @@ func TestQuoteService_DownloadTwse(t *testing.T) {
 				"500.00",
 				"504.00",
 				"-5.00",
-				"26,792"
+				"26,792",
+				""
 			  ],
 			  [
 				"111/08/02",
@@ -55,7 +57,8 @@ func TestQuoteService_DownloadTwse(t *testing.T) {
 				"488.50",
 				"492.00",
 				"-12.00",
-				"63,879"
+				"63,879",
+				""
 			  ],
 			  [
 				"111/08/03",
@@ -66,7 +69,8 @@ func TestQuoteService_DownloadTwse(t *testing.T) {
 				"493.00",
 				"501.00",
 				"+9.00",
-				"25,570"
+				"25,570",
+				""
 			  ],
 			  [
 				"111/08/04",
@@ -77,7 +81,8 @@ func TestQuoteService_DownloadTwse(t *testing.T) {
 				"495.00",
 				"500.00",
 				"-1.00",
-				"27,173"
+				"27,173",
+				""
 			  ],
 			  [
 				"111/08/05",
@@ -88,7 +93,8 @@ func TestQuoteService_DownloadTwse(t *testing.T) {
 				"507.00",
 				"516.00",
 				"+16.00",
-				"49,928"
+				"49,928",
+				""
 			  ]
 			],
 			"notes": [
