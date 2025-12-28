@@ -189,7 +189,7 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 			return nil, fmt.Errorf("invalid state: %s", resp.Stat)
 		}
 	}
-	if len(resp.Fields) != 9 ||
+	if len(resp.Fields) != 10 ||
 		resp.Fields[0] != "日期" ||
 		resp.Fields[1] != "成交股數" ||
 		resp.Fields[2] != "成交金額" ||
@@ -198,7 +198,8 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 		resp.Fields[5] != "最低價" ||
 		resp.Fields[6] != "收盤價" ||
 		resp.Fields[7] != "漲跌價差" ||
-		resp.Fields[8] != "成交筆數" {
+		resp.Fields[8] != "成交筆數" ||
+		resp.Fields[9] != "註記" {
 		return nil, fmt.Errorf("failed parsing quote fields: %s", strings.Join(resp.Fields, ","))
 	}
 	quotes := []Quote{}
