@@ -23,7 +23,7 @@ func format(w *os.File, v reflect.Value) {
 func main() {
 	w, err := os.Create("./twstock/securities_GENERATED.go")
 	if err != nil {
-		log.Fatal(w)
+		log.Fatal(err)
 	}
 	defer w.Close()
 
