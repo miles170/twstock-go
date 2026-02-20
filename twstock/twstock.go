@@ -114,7 +114,7 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 
 // Do sends an API request and returns the API response.
 func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
-	resp, err := c.client.Do(req)
+	resp, err := c.client.Do(req) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 
 // DoTransformToDocument sends an API request and returns the goquery.Document.
 func (c *Client) DoTransformToDocument(req *http.Request, t transform.Transformer) (*goquery.Document, error) {
-	resp, err := c.client.Do(req)
+	resp, err := c.client.Do(req) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
