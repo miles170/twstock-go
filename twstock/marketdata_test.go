@@ -564,6 +564,324 @@ func TestMarketDataService_DownloadTpexBadData(t *testing.T) {
 	}
 }
 
+func TestMarketDataService_DownloadTAIEX(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(twseTAIEXPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{
+			"stat": "OK",
+			"title": "88年01月 發行量加權股價指數歷史資料",
+			"date": "19990101",
+			"fields": [
+				"日期",
+				"開盤指數",
+				"最高指數",
+				"最低指數",
+				"收盤指數"
+			],
+			"data": [
+				[" 88/01/05", "6,310.41", "6,310.41", "6,111.64", "6,152.43"],
+				[" 88/01/06", "6,082.02", "6,280.93", "5,988.06", "6,199.91"]
+			],
+			"total": 2
+		}`)
+	})
+
+	data, err := client.MarketData.DownloadTAIEX(1999, 1)
+	if err != nil {
+		t.Errorf("MarketData.DownloadTAIEX returned error: %v", err)
+	}
+	want := []TAIEXIndex{
+		{
+			Date:  civil.Date{Year: 1999, Month: time.January, Day: 5},
+			Open:  decimal.NewFromFloat(6310.41),
+			High:  decimal.NewFromFloat(6310.41),
+			Low:   decimal.NewFromFloat(6111.64),
+			Close: decimal.NewFromFloat(6152.43),
+		},
+		{
+			Date:  civil.Date{Year: 1999, Month: time.January, Day: 6},
+			Open:  decimal.NewFromFloat(6082.02),
+			High:  decimal.NewFromFloat(6280.93),
+			Low:   decimal.NewFromFloat(5988.06),
+			Close: decimal.NewFromFloat(6199.91),
+		},
+	}
+	if !cmp.Equal(data, want) {
+		t.Errorf("MarketData.DownloadTAIEX returned %v, want %v", data, want)
+	}
+}
+
+func TestMarketDataService_DownloadTAIEXError(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(twseTAIEXPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.WriteHeader(http.StatusBadRequest)
+	})
+
+	_, err := client.MarketData.DownloadTAIEX(1999, 1)
+	if err == nil {
+		t.Error("MarketData.DownloadTAIEX returned nil; expected error")
+	}
+	testErrorContains(t, err, ": 400")
+
+	_, err = client.MarketData.DownloadTAIEX(1998, 12)
+	if err == nil {
+		t.Error("MarketData.DownloadTAIEX returned nil; expected error")
+	}
+}
+
+func TestMarketDataService_DownloadTAIEXBadStat(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(twseTAIEXPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"stat":"BAD","fields":[],"data":[]}`)
+	})
+
+	_, err := client.MarketData.DownloadTAIEX(1999, 1)
+	if err == nil {
+		t.Error("MarketData.DownloadTAIEX returned nil; expected error")
+	}
+}
+
+func TestMarketDataService_DownloadTAIEXErrDateOutOffRange(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(twseTAIEXPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"stat":"查詢日期大於今日，請重新查詢!","fields":[],"data":[]}`)
+	})
+
+	_, err := client.MarketData.DownloadTAIEX(1999, 1)
+	if err == nil {
+		t.Error("MarketData.DownloadTAIEX returned nil; expected error")
+	}
+	if !errors.Is(err, ErrDateOutOffRange) {
+		t.Errorf("MarketData.DownloadTAIEX returned %v, want %v", err, ErrDateOutOffRange)
+	}
+}
+
+func TestMarketDataService_DownloadTAIEXBadFields(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(twseTAIEXPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"stat":"OK","fields":["日期","開盤指數","最高===指數","最低指數","收盤指數"],"data":[]}`)
+	})
+
+	_, err := client.MarketData.DownloadTAIEX(1999, 1)
+	if err == nil {
+		t.Error("MarketData.DownloadTAIEX returned nil; expected error")
+	}
+}
+
+func TestMarketDataService_DownloadTAIEXBadContent(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(twseTAIEXPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{
+			"stat": "OK",
+			"fields": ["日期","開盤指數","最高指數","最低指數","收盤指數"],
+			"data": [[" 88/01/99","6,310.41","6,310.41","6,111.64","6,152.43"]]
+		}`)
+	})
+
+	_, err := client.MarketData.DownloadTAIEX(1999, 1)
+	if err == nil {
+		t.Error("MarketData.DownloadTAIEX returned nil; expected error")
+	}
+}
+
+func TestMarketDataService_parseTAIEX(t *testing.T) {
+	client, _, teardown := setup()
+	defer teardown()
+
+	testCases := [][]string{
+		{},
+		{" 88/50/01", "", "", "", ""},
+		{" 88/01/05", "1B", "", "", ""},
+		{" 88/01/05", "1", "1B", "", ""},
+		{" 88/01/05", "1", "1", "1B", ""},
+		{" 88/01/05", "1", "1", "1", "1B"},
+	}
+	for _, test := range testCases {
+		t.Run("parseTAIEX", func(t *testing.T) {
+			_, err := client.MarketData.parseTAIEX(test)
+			if err == nil {
+				t.Error("client.MarketData.parseTAIEX returned nil; expected error")
+			}
+		})
+	}
+}
+
+func TestMarketDataService_DownloadTPExIndex(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(tpexIndexPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{
+			"date": "19990901",
+			"tables": [{
+				"title": "櫃買指數(月查詢)",
+				"date": "88/09",
+				"totalCount": 2,
+				"fields": ["日期","開市","最高","最低","收市","漲/跌"],
+				"data": [
+					["1999/09/01","184.33","185.92","182.58","183.51","1.89"],
+					["1999/09/02","186.20","187.50","182.96","184.51","1.00"]
+				],
+				"summary": [],
+				"notes": []
+			}],
+			"stat": "ok"
+		}`)
+	})
+
+	data, err := client.MarketData.DownloadTPExIndex(1999, 9)
+	if err != nil {
+		t.Errorf("MarketData.DownloadTPExIndex returned error: %v", err)
+	}
+	want := []TPExIndex{
+		{
+			Date:   civil.Date{Year: 1999, Month: time.September, Day: 1},
+			Open:   decimal.NewFromFloat(184.33),
+			High:   decimal.NewFromFloat(185.92),
+			Low:    decimal.NewFromFloat(182.58),
+			Close:  decimal.NewFromFloat(183.51),
+			Change: decimal.NewFromFloat(1.89),
+		},
+		{
+			Date:   civil.Date{Year: 1999, Month: time.September, Day: 2},
+			Open:   decimal.NewFromFloat(186.20),
+			High:   decimal.NewFromFloat(187.50),
+			Low:    decimal.NewFromFloat(182.96),
+			Close:  decimal.NewFromFloat(184.51),
+			Change: decimal.NewFromFloat(1.00),
+		},
+	}
+	if !cmp.Equal(data, want) {
+		t.Errorf("MarketData.DownloadTPExIndex returned %v, want %v", data, want)
+	}
+}
+
+func TestMarketDataService_DownloadTPExIndexError(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(tpexIndexPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		w.WriteHeader(http.StatusBadRequest)
+	})
+
+	_, err := client.MarketData.DownloadTPExIndex(1999, 9)
+	if err == nil {
+		t.Error("MarketData.DownloadTPExIndex returned nil; expected error")
+	}
+	testErrorContains(t, err, ": 400")
+
+	_, err = client.MarketData.DownloadTPExIndex(1999, 8)
+	if err == nil {
+		t.Error("MarketData.DownloadTPExIndex returned nil; expected error")
+	}
+}
+
+func TestMarketDataService_DownloadTPExIndexErrNoData(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(tpexIndexPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"date":"19990901","tables":[],"stat":"ok"}`)
+	})
+
+	_, err := client.MarketData.DownloadTPExIndex(1999, 9)
+	if err == nil {
+		t.Error("MarketData.DownloadTPExIndex returned nil; expected error")
+	}
+	if !errors.Is(err, ErrNoData) {
+		t.Errorf("MarketData.DownloadTPExIndex returned %v, want %v", err, ErrNoData)
+	}
+}
+
+func TestMarketDataService_DownloadTPExIndexBadDataLength(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(tpexIndexPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"date":"19990901","tables":[{"data":[],"totalCount":1,"fields":["日期","開市","最高","最低","收市","漲/跌"]}],"stat":"ok"}`)
+	})
+
+	_, err := client.MarketData.DownloadTPExIndex(1999, 9)
+	if err == nil {
+		t.Error("MarketData.DownloadTPExIndex returned nil; expected error")
+	}
+}
+
+func TestMarketDataService_DownloadTPExIndexBadFields(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(tpexIndexPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"date":"19990901","tables":[{"data":[["1999/09/01","184.33","185.92","182.58","183.51","1.89"]],"totalCount":1,"fields":["日期","開市","最高===","最低","收市","漲/跌"]}],"stat":"ok"}`)
+	})
+
+	_, err := client.MarketData.DownloadTPExIndex(1999, 9)
+	if err == nil {
+		t.Error("MarketData.DownloadTPExIndex returned nil; expected error")
+	}
+}
+
+func TestMarketDataService_DownloadTPExIndexBadData(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(tpexIndexPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"date":"19990901","tables":[{"data":[["1999/09/01","BADDATA","185.92","182.58","183.51","1.89"]],"totalCount":1,"fields":["日期","開市","最高","最低","收市","漲/跌"]}],"stat":"ok"}`)
+	})
+
+	_, err := client.MarketData.DownloadTPExIndex(1999, 9)
+	if err == nil {
+		t.Error("MarketData.DownloadTPExIndex returned nil; expected error")
+	}
+}
+
+func TestMarketDataService_parseTPExIndex(t *testing.T) {
+	client, _, teardown := setup()
+	defer teardown()
+
+	testCases := [][]string{
+		{},
+		{"1999/50/01", "", "", "", "", ""},
+		{"1999/09/01", "1B", "", "", "", ""},
+		{"1999/09/01", "1", "1B", "", "", ""},
+		{"1999/09/01", "1", "1", "1B", "", ""},
+		{"1999/09/01", "1", "1", "1", "1B", ""},
+		{"1999/09/01", "1", "1", "1", "1", "1B"},
+	}
+	for _, test := range testCases {
+		t.Run("parseTPExIndex", func(t *testing.T) {
+			_, err := client.MarketData.parseTPExIndex(test)
+			if err == nil {
+				t.Error("client.MarketData.parseTPExIndex returned nil; expected error")
+			}
+		})
+	}
+}
+
 func TestMarketDataService_parse(t *testing.T) {
 	client, _, teardown := setup()
 	defer teardown()
