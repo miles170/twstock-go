@@ -61,6 +61,31 @@ var (
 	ErrDateOutOffRange = errors.New("date out of range")
 )
 
+func parseWesternDate(s string) (civil.Date, error) {
+	var date civil.Date
+	rawDate := strings.Split(strings.TrimSpace(s), "/")
+	if len(rawDate) != 3 {
+		return date, fmt.Errorf("failed parsing date: %s", s)
+	}
+	year, err := strconv.Atoi(rawDate[0])
+	if err != nil {
+		return date, fmt.Errorf("failed parsing date: %w", err)
+	}
+	month, err := strconv.Atoi(rawDate[1])
+	if err != nil {
+		return date, fmt.Errorf("failed parsing date: %w", err)
+	}
+	day, err := strconv.Atoi(strings.TrimRight(rawDate[2], "＊*"))
+	if err != nil {
+		return date, fmt.Errorf("failed parsing date: %w", err)
+	}
+	date = civil.Date{Year: year, Month: time.Month(month), Day: day}
+	if !date.IsValid() {
+		return date, fmt.Errorf("failed parsing date: %s", s)
+	}
+	return date, nil
+}
+
 func parseDate(s string) (civil.Date, error) {
 	var date civil.Date
 	rawDate := strings.Split(strings.TrimSpace(s), "/")
