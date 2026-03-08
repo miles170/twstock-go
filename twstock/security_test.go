@@ -18,7 +18,7 @@ func TestSecurityService_Download(t *testing.T) {
 		testMethod(t, r, "GET")
 		enc := traditionalchinese.Big5.NewEncoder()
 		raw := ""
-		mode := r.FormValue("strMode")
+		mode := r.URL.Query().Get("strMode")
 		switch mode {
 		case "2":
 			raw = `
