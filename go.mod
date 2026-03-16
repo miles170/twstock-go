@@ -1,12 +1,10 @@
 module github.com/miles170/twstock-go
 
-go 1.24.0
-
-toolchain go1.24.1
+go 1.25.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
-	golang.org/x/text v0.34.0
+	golang.org/x/text v0.35.0
 )
 
 require (
