@@ -3,7 +3,7 @@ module github.com/miles170/twstock-go
 go 1.25.0
 
 require (
-	github.com/PuerkitoBio/goquery v1.11.0
+	github.com/PuerkitoBio/goquery v1.12.0
 	golang.org/x/text v0.35.0
 )
 
@@ -13,5 +13,5 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-querystring v1.2.0
 	github.com/shopspring/decimal v1.4.0
-	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/net v0.52.0 // indirect
 )
