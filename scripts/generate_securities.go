@@ -21,17 +21,20 @@ func format(w *os.File, v reflect.Value) {
 }
 
 func main() {
-	w, err := os.Create("./twstock/securities_GENERATED.go")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer w.Close()
-
 	client := twstock.NewClient()
 	securities, err := client.Security.Download()
 	if err != nil {
 		log.Fatal(err)
 	}
+	if len(securities) == 0 {
+		log.Fatal("no securities downloaded")
+	}
+
+	w, err := os.Create("./twstock/securities_GENERATED.go")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer w.Close()
 
 	fmt.Fprintf(w, "// Code generated security DO NOT EDIT.\n\n")
 	fmt.Fprintf(w, "package %s\n\n", "twstock")
