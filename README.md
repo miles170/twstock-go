@@ -3,7 +3,6 @@
 [![GoDoc](https://img.shields.io/static/v1?label=godoc&message=reference&color=blue)](https://pkg.go.dev/github.com/miles170/twstock-go/twstock)
 [![Test Status](https://github.com/miles170/twstock-go/workflows/tests/badge.svg)](https://github.com/miles170/twstock-go/actions?query=workflow%3Atests)
 [![Test Coverage](https://codecov.io/gh/miles170/twstock-go/branch/main/graph/badge.svg)](https://codecov.io/gh/miles170/twstock-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/miles170/twstock-go)](https://goreportcard.com/report/github.com/miles170/twstock-go)
 [![Code Climate](https://codeclimate.com/github/miles170/twstock-go/badges/gpa.svg)](https://codeclimate.com/github/miles170/twstock-go)
 
 從[台灣證券交易所 (TWSE)](https://www.twse.com.tw/zh/) 及[證券櫃檯買賣中心 (TPEx)](https://www.tpex.org.tw/web/) 下載台股資料的 Go 套件。
