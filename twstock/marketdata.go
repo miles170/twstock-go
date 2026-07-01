@@ -183,7 +183,7 @@ func (s *MarketDataService) DownloadTwse(year int, month time.Month) ([]MarketDa
 		return nil, err
 	}
 	if resp.Stat != "OK" {
-		if resp.Stat == "查詢日期大於今日，請重新查詢!" {
+		if isDateOutOfRangeStat(resp.Stat) {
 			return nil, ErrDateOutOffRange
 		}
 		return nil, fmt.Errorf("invalid state: %s", resp.Stat)
@@ -271,7 +271,7 @@ func (s *MarketDataService) DownloadTAIEX(year int, month time.Month) ([]TAIEXIn
 		return nil, err
 	}
 	if resp.Stat != "OK" {
-		if resp.Stat == "查詢日期大於今日，請重新查詢!" {
+		if isDateOutOfRangeStat(resp.Stat) {
 			return nil, ErrDateOutOffRange
 		}
 		return nil, fmt.Errorf("invalid state: %s", resp.Stat)

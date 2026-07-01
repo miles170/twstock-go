@@ -61,6 +61,11 @@ var (
 	ErrDateOutOffRange = errors.New("date out of range")
 )
 
+func isDateOutOfRangeStat(stat string) bool {
+	return stat == "查詢日期大於今日，請重新查詢!" ||
+		strings.HasPrefix(stat, "查詢日期小於")
+}
+
 func parseWesternDate(s string) (civil.Date, error) {
 	var date civil.Date
 	rawDate := strings.Split(strings.TrimSpace(s), "/")
@@ -205,14 +210,13 @@ func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]
 		return nil, err
 	}
 	if resp.Stat != "OK" {
-		switch resp.Stat {
-		case "很抱歉，沒有符合條件的資料!":
+		if resp.Stat == "很抱歉，沒有符合條件的資料!" {
 			return nil, ErrNoData
-		case "查詢日期大於今日，請重新查詢!":
-			return nil, ErrDateOutOffRange
-		default:
-			return nil, fmt.Errorf("invalid state: %s", resp.Stat)
 		}
+		if isDateOutOfRangeStat(resp.Stat) {
+			return nil, ErrDateOutOffRange
+		}
+		return nil, fmt.Errorf("invalid state: %s", resp.Stat)
 	}
 	if len(resp.Fields) != 10 ||
 		resp.Fields[0] != "日期" ||

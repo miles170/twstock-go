@@ -237,6 +237,31 @@ func TestQuoteService_DownloadTwseErrDateOutOffRange(t *testing.T) {
 	}
 }
 
+func TestQuoteService_DownloadTwseErrDateOutOfRangeBeforeMinimum(t *testing.T) {
+	client, mux, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc(twseQuotesPath, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		{
+			"stat": "查詢日期小於99年1月4日，請重新查詢!",
+			"date": "20100101",
+			"title": "99年01月 3049 精金           各日成交資訊",
+			"fields": [],
+			"notes": []
+		  }`)
+	})
+
+	_, err := client.Quote.DownloadTwse("3049", 2010, 1)
+	if err == nil {
+		t.Error("Quote.DownloadTwse returned nil; expected error")
+	}
+	if !errors.Is(err, ErrDateOutOffRange) {
+		t.Errorf("Quote.DownloadTwse returned %v, want %v", err, ErrDateOutOffRange)
+	}
+}
+
 func TestQuoteService_DownloadTwseBadStat(t *testing.T) {
 	client, mux, teardown := setup()
 	defer teardown()
