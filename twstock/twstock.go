@@ -46,9 +46,17 @@ type Client struct {
 	Quote      *QuoteService
 }
 
+func mustParseURL(rawURL string) *url.URL {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		panic(err)
+	}
+	return u
+}
+
 // addOptions adds the parameters in opts as URL query parameters to s. opts
 // must be a struct whose fields may contain "url" tags.
-func addOptions(u *url.URL, opts interface{}) (*url.URL, error) {
+func addOptions(u *url.URL, opts any) (*url.URL, error) {
 	v := reflect.ValueOf(opts)
 	if v.Kind() == reflect.Pointer && v.IsNil() {
 		return u, nil
@@ -66,22 +74,18 @@ func addOptions(u *url.URL, opts interface{}) (*url.URL, error) {
 // NewClient returns a new twstock API client.
 func NewClient() *Client {
 	httpClient := &http.Client{}
-	twseBaseURL, _ := url.Parse(defaultTwseBaseURL)
-	tpexBaseURL, _ := url.Parse(defaultTpexBaseURL)
-	misTwseBaseURL, _ := url.Parse(defaultMisTwseBaseURL)
-	isinTwseBaseURL, _ := url.Parse(defaultIsinTwseBaseURL)
 	c := &Client{
 		client: httpClient,
 
-		twseBaseURL: twseBaseURL,
+		twseBaseURL: mustParseURL(defaultTwseBaseURL),
 		twseDecoder: transform.Nop,
 
-		tpexBaseURL: tpexBaseURL,
+		tpexBaseURL: mustParseURL(defaultTpexBaseURL),
 		tpexDecoder: transform.Nop,
 
-		misTwseBaseURL: misTwseBaseURL,
+		misTwseBaseURL: mustParseURL(defaultMisTwseBaseURL),
 
-		isinTwseBaseURL: isinTwseBaseURL,
+		isinTwseBaseURL: mustParseURL(defaultIsinTwseBaseURL),
 		isinTwseDecoder: traditionalchinese.Big5.NewDecoder(),
 	}
 	c.MarketData = &MarketDataService{client: c}
@@ -91,7 +95,7 @@ func NewClient() *Client {
 }
 
 // NewRequest creates an API request.
-func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Request, error) {
+func (c *Client) NewRequest(method, urlStr string, body any) (*http.Request, error) {
 	var buf io.Reader
 	contentType := ""
 
@@ -113,7 +117,7 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 }
 
 // Do sends an API request and returns the API response.
-func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
+func (c *Client) Do(req *http.Request, v any) (*http.Response, error) {
 	resp, err := c.client.Do(req) //nolint:gosec
 	if err != nil {
 		return nil, err
@@ -121,15 +125,16 @@ func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
 
 	defer resp.Body.Close()
 
-	err = CheckResponse(resp)
-	if err != nil {
+	if err := CheckResponse(resp); err != nil {
 		return resp, err
 	}
 
 	if v != nil {
-		err = json.NewDecoder(resp.Body).Decode(v)
+		if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+			return resp, err
+		}
 	}
-	return resp, err
+	return resp, nil
 }
 
 // DoTransformToDocument sends an API request and returns the goquery.Document.
@@ -141,8 +146,7 @@ func (c *Client) DoTransformToDocument(req *http.Request, t transform.Transforme
 
 	defer resp.Body.Close()
 
-	err = CheckResponse(resp)
-	if err != nil {
+	if err := CheckResponse(resp); err != nil {
 		return nil, err
 	}
 

@@ -168,17 +168,26 @@ func (s *MarketDataService) MinimumDate(m Market) civil.Date {
 func (s *MarketDataService) DownloadTwse(year int, month time.Month) ([]MarketData, error) {
 	date := civil.Date{Year: year, Month: month, Day: 1}
 	if date.Before(s.MinimumDate(TWSE)) {
-		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
+		return nil, fmt.Errorf("invalid date: %04d-%02d", date.Year, date.Month)
 	}
-	url, _ := s.client.twseBaseURL.Parse(twseMarketDataPath)
+	u, err := s.client.twseBaseURL.Parse(twseMarketDataPath)
+	if err != nil {
+		return nil, err
+	}
 	opts := twseOptions{
 		Response: "json",
 		Date:     fmt.Sprintf("%04d%02d%02d", date.Year, date.Month, date.Day),
 	}
-	url, _ = addOptions(url, opts)
-	req, _ := s.client.NewRequest("GET", url.String(), nil)
+	u, err = addOptions(u, opts)
+	if err != nil {
+		return nil, err
+	}
+	req, err := s.client.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 	resp := &twseResponse{}
-	_, err := s.client.Do(req, &resp)
+	_, err = s.client.Do(req, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -212,17 +221,26 @@ func (s *MarketDataService) DownloadTwse(year int, month time.Month) ([]MarketDa
 func (s *MarketDataService) DownloadTpex(year int, month time.Month) ([]MarketData, error) {
 	date := civil.Date{Year: year, Month: month, Day: 1}
 	if date.Before(s.MinimumDate(TPEx)) {
-		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
+		return nil, fmt.Errorf("invalid date: %04d-%02d", date.Year, date.Month)
 	}
-	url, _ := s.client.tpexBaseURL.Parse(tpexMarketDataPath)
+	u, err := s.client.tpexBaseURL.Parse(tpexMarketDataPath)
+	if err != nil {
+		return nil, err
+	}
 	opts := tpexOptions{
 		Response: "json",
 		Date:     fmt.Sprintf("%04d/%02d/%02d", date.Year, date.Month, date.Day),
 	}
-	url, _ = addOptions(url, opts)
-	req, _ := s.client.NewRequest("GET", url.String(), nil)
+	u, err = addOptions(u, opts)
+	if err != nil {
+		return nil, err
+	}
+	req, err := s.client.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 	resp := &tpexResponse{}
-	_, err := s.client.Do(req, &resp)
+	_, err = s.client.Do(req, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -256,17 +274,26 @@ func (s *MarketDataService) DownloadTAIEX(year int, month time.Month) ([]TAIEXIn
 	date := civil.Date{Year: year, Month: month, Day: 1}
 	minimumDate := civil.Date{Year: 1999, Month: time.January, Day: 1}
 	if date.Before(minimumDate) {
-		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
+		return nil, fmt.Errorf("invalid date: %04d-%02d", date.Year, date.Month)
 	}
-	u, _ := s.client.twseBaseURL.Parse(twseTAIEXPath)
+	u, err := s.client.twseBaseURL.Parse(twseTAIEXPath)
+	if err != nil {
+		return nil, err
+	}
 	opts := twseOptions{
 		Response: "json",
 		Date:     fmt.Sprintf("%04d%02d%02d", date.Year, date.Month, date.Day),
 	}
-	u, _ = addOptions(u, opts)
-	req, _ := s.client.NewRequest("GET", u.String(), nil)
+	u, err = addOptions(u, opts)
+	if err != nil {
+		return nil, err
+	}
+	req, err := s.client.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 	resp := &twseResponse{}
-	_, err := s.client.Do(req, &resp)
+	_, err = s.client.Do(req, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -300,16 +327,22 @@ func (s *MarketDataService) DownloadTPExIndex(year int, month time.Month) ([]TPE
 	date := civil.Date{Year: year, Month: month, Day: 1}
 	minimumDate := civil.Date{Year: 1999, Month: time.September, Day: 1}
 	if date.Before(minimumDate) {
-		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
+		return nil, fmt.Errorf("invalid date: %04d-%02d", date.Year, date.Month)
 	}
-	u, _ := s.client.tpexBaseURL.Parse(tpexIndexPath)
+	u, err := s.client.tpexBaseURL.Parse(tpexIndexPath)
+	if err != nil {
+		return nil, err
+	}
 	body := url.Values{
 		"response": {"json"},
 		"date":     {fmt.Sprintf("%04d/%02d/%02d", date.Year, date.Month, date.Day)},
 	}.Encode()
-	req, _ := s.client.NewRequest("POST", u.String(), body)
+	req, err := s.client.NewRequest("POST", u.String(), body)
+	if err != nil {
+		return nil, err
+	}
 	resp := &tpexResponse{}
-	_, err := s.client.Do(req, &resp)
+	_, err = s.client.Do(req, resp)
 	if err != nil {
 		return nil, err
 	}

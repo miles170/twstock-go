@@ -119,12 +119,7 @@ func parseDate(s string) (civil.Date, error) {
 }
 
 func parsePrice(s string) (decimal.Decimal, error) {
-	var v decimal.Decimal
-	f, err := strconv.ParseFloat(strings.ReplaceAll(s, ",", ""), 64)
-	if err != nil {
-		return v, err
-	}
-	return decimal.NewFromFloat(f), nil
+	return decimal.NewFromString(strings.ReplaceAll(s, ",", ""))
 }
 
 func parseVolume(s string) (int, error) {
@@ -194,18 +189,27 @@ func (s *QuoteService) MinimumDate(m Market) civil.Date {
 func (s *QuoteService) DownloadTwse(code string, year int, month time.Month) ([]Quote, error) {
 	date := civil.Date{Year: year, Month: month, Day: 1}
 	if date.Before(s.MinimumDate(TWSE)) {
-		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
+		return nil, fmt.Errorf("invalid date: %04d-%02d", date.Year, date.Month)
 	}
-	url, _ := s.client.twseBaseURL.Parse(twseQuotesPath)
+	u, err := s.client.twseBaseURL.Parse(twseQuotesPath)
+	if err != nil {
+		return nil, err
+	}
 	opts := twseOptions{
 		Response: "json",
 		Date:     fmt.Sprintf("%04d%02d%02d", date.Year, date.Month, date.Day),
 		Code:     code,
 	}
-	url, _ = addOptions(url, opts)
-	req, _ := s.client.NewRequest("GET", url.String(), nil)
+	u, err = addOptions(u, opts)
+	if err != nil {
+		return nil, err
+	}
+	req, err := s.client.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 	resp := &twseResponse{}
-	_, err := s.client.Do(req, &resp)
+	_, err = s.client.Do(req, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -289,18 +293,27 @@ type tpexResponse struct {
 func (s *QuoteService) DownloadTpex(code string, year int, month time.Month) ([]Quote, error) {
 	date := civil.Date{Year: year, Month: month, Day: 1}
 	if date.Before(s.MinimumDate(TPEx)) {
-		return nil, fmt.Errorf("invalid date: %s", fmt.Sprintf("%04d-%02d", date.Year, date.Month))
+		return nil, fmt.Errorf("invalid date: %04d-%02d", date.Year, date.Month)
 	}
-	url, _ := s.client.tpexBaseURL.Parse(tpexQuotesPath)
+	u, err := s.client.tpexBaseURL.Parse(tpexQuotesPath)
+	if err != nil {
+		return nil, err
+	}
 	opts := tpexOptions{
 		Response: "json",
 		Date:     fmt.Sprintf("%04d/%02d/%02d", date.Year, date.Month, date.Day),
 		Code:     code,
 	}
-	url, _ = addOptions(url, opts)
-	req, _ := s.client.NewRequest("GET", url.String(), nil)
+	u, err = addOptions(u, opts)
+	if err != nil {
+		return nil, err
+	}
+	req, err := s.client.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 	resp := &tpexResponse{}
-	_, err := s.client.Do(req, &resp)
+	_, err = s.client.Do(req, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -425,8 +438,8 @@ func parseBidAsk(pricesStr string, volumesStr string) ([]BidAsk, error) {
 		return nil, fmt.Errorf("failed parsing bid-ask")
 	}
 
-	v := []BidAsk{}
-	for i := 0; i < len(prices); i++ {
+	v := make([]BidAsk, 0, len(prices))
+	for i := range prices {
 		price, err := parsePrice(prices[i])
 		if err != nil {
 			return nil, fmt.Errorf("failed parsing quote price: %w", err)
@@ -502,14 +515,23 @@ func (s *QuoteService) Realtime(codes ...string) (map[string]RealtimeQuote, erro
 		return nil, fmt.Errorf("invalid code: %s", v)
 	}
 
-	url, _ := s.client.misTwseBaseURL.Parse(realtimeQuotesPath)
+	u, err := s.client.misTwseBaseURL.Parse(realtimeQuotesPath)
+	if err != nil {
+		return nil, err
+	}
 	opts := realtimeOptions{
 		Codes: strings.Join(codes, "|"),
 	}
-	url, _ = addOptions(url, opts)
-	req, _ := s.client.NewRequest("GET", url.String(), nil)
+	u, err = addOptions(u, opts)
+	if err != nil {
+		return nil, err
+	}
+	req, err := s.client.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 	resp := &realtimeResponse{}
-	_, err := s.client.Do(req, &resp)
+	_, err = s.client.Do(req, resp)
 	if err != nil {
 		return nil, err
 	}

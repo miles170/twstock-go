@@ -51,7 +51,7 @@ func (s *SecurityService) download(url string, t transform.Transformer) ([]Secur
 		return nil, err
 	}
 	securities := []Security{}
-	var securityType = ""
+	securityType := ""
 	doc.Find("tr").EachWithBreak(func(i int, s *goquery.Selection) bool {
 		// 跳過標題
 		if i == 0 {
@@ -115,8 +115,11 @@ const (
 func (s *SecurityService) Download() ([]Security, error) {
 	securities := []Security{}
 	for _, path := range []string{twseSecuritiesPath, tpexSecuritiesPath} {
-		url, _ := s.client.isinTwseBaseURL.Parse(path)
-		s, err := s.download(url.String(), s.client.isinTwseDecoder)
+		u, err := s.client.isinTwseBaseURL.Parse(path)
+		if err != nil {
+			return nil, err
+		}
+		s, err := s.download(u.String(), s.client.isinTwseDecoder)
 		if err != nil {
 			return nil, err
 		}
@@ -127,8 +130,14 @@ func (s *SecurityService) Download() ([]Security, error) {
 
 // 從台灣證卷交易所下載下市的國際證券資料
 func (s *SecurityService) DownloadTwseDelisted() ([]DelistedSecurity, error) {
-	url, _ := s.client.twseBaseURL.Parse(twseDelistedSecuritiesPath)
-	req, _ := s.client.NewRequest("POST", url.String(), "maxLength=-1&selectYear=&submitBtn=%E6%9F%A5%E8%A9%A2")
+	u, err := s.client.twseBaseURL.Parse(twseDelistedSecuritiesPath)
+	if err != nil {
+		return nil, err
+	}
+	req, err := s.client.NewRequest("POST", u.String(), "maxLength=-1&selectYear=&submitBtn=%E6%9F%A5%E8%A9%A2")
+	if err != nil {
+		return nil, err
+	}
 	doc, err := s.client.DoTransformToDocument(req, s.client.twseDecoder)
 	if err != nil {
 		return nil, err
@@ -153,8 +162,14 @@ func (s *SecurityService) DownloadTwseDelisted() ([]DelistedSecurity, error) {
 
 // 從證券櫃檯買賣中心下載下櫃的國際證券資料
 func (s *SecurityService) DownloadTpexDelisted(page int) ([]DelistedSecurity, error) {
-	url, _ := s.client.tpexBaseURL.Parse(tpexDelistedSecuritiesPath)
-	req, _ := s.client.NewRequest("POST", url.String(), fmt.Sprintf("stk_code=&select_year=ALL&topage=%d&DELIST_REASON=-1", page+1))
+	u, err := s.client.tpexBaseURL.Parse(tpexDelistedSecuritiesPath)
+	if err != nil {
+		return nil, err
+	}
+	req, err := s.client.NewRequest("POST", u.String(), fmt.Sprintf("stk_code=&select_year=ALL&topage=%d&DELIST_REASON=-1", page+1))
+	if err != nil {
+		return nil, err
+	}
 	doc, err := s.client.DoTransformToDocument(req, s.client.twseDecoder)
 	if err != nil {
 		return nil, err
