@@ -1,6 +1,8 @@
 package twstock
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -73,7 +75,7 @@ func addOptions(u *url.URL, opts any) (*url.URL, error) {
 
 // NewClient returns a new twstock API client.
 func NewClient() *Client {
-	httpClient := &http.Client{}
+	httpClient := &http.Client{Transport: newTransport()}
 	c := &Client{
 		client: httpClient,
 
@@ -92,6 +94,23 @@ func NewClient() *Client {
 	c.Security = &SecurityService{client: c}
 	c.Quote = &QuoteService{client: c}
 	return c
+}
+
+func newTransport() *http.Transport {
+	rootCAs, err := x509.SystemCertPool()
+	if err != nil {
+		panic(fmt.Sprintf("load system certificate pool: %v", err))
+	}
+	if !rootCAs.AppendCertsFromPEM([]byte(tpexIntermediateCertificate)) {
+		panic("load TPEx intermediate certificate")
+	}
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		RootCAs:    rootCAs,
+	}
+	return transport
 }
 
 // NewRequest creates an API request.
