@@ -27,6 +27,39 @@ func TestMarketData_DownloadMarginMaintenanceRatio(t *testing.T) {
 	}
 }
 
+func TestMarketData_DownloadMarginBalance(t *testing.T) {
+	for _, tc := range []struct {
+		market      twstock.Market
+		count       int
+		firstDate   civil.Date
+		firstAmount string
+		firstLots   int
+		lastAmount  string
+		lastLots    int
+	}{
+		{twstock.TWSE, 60, civil.Date{Year: 2026, Month: time.July, Day: 7}, "610945256000", 213844, "629867193000", 233322},
+		{twstock.TPEx, 42, civil.Date{Year: 2026, Month: time.August, Day: 3}, "167008000000", 31855, "218872000000", 36462},
+	} {
+		t.Run(string(tc.market), func(t *testing.T) {
+			date := civil.Date{Year: 2026, Month: time.October, Day: 1}
+			data, err := twstock.NewClient().MarketData.DownloadMarginBalance(tc.market, date, 60)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(data) != tc.count {
+				t.Fatalf("got %d records, want %d", len(data), tc.count)
+			}
+			first, last := data[0], data[len(data)-1]
+			if first.Date != tc.firstDate || first.FinancingAmount.String() != tc.firstAmount || first.ShortSellingLots != tc.firstLots {
+				t.Errorf("unexpected first record: %+v", first)
+			}
+			if last.Date != date || last.FinancingAmount.String() != tc.lastAmount || last.ShortSellingLots != tc.lastLots {
+				t.Errorf("unexpected last record: %+v", last)
+			}
+		})
+	}
+}
+
 func TestMarketData_DownloadTwse(t *testing.T) {
 	client := twstock.NewClient()
 	_, err := client.MarketData.DownloadTwse(2022, 12)
