@@ -95,6 +95,31 @@ indices, err := client.MarketData.DownloadTAIEX(1999, 1)
 indices, err := client.MarketData.DownloadTPExIndex(1999, 9)
 ```
 
+### 全市場擔保維持率
+
+從[證交所臺股儀表板](https://www.twse.com.tw/dashboard/zh/credit/margin.html)下載上市與上櫃合計的擔保維持率。資料自 **2026/08/03** 起提供。
+
+指定截止日期與往前查詢的交易日筆數；資料不足時會回傳實際可取得的筆數。`Ratio` 為百分比數值，例如 `178.76` 表示 `178.76%`。
+
+```go
+import (
+    "time"
+    "github.com/golang-sql/civil"
+)
+
+// 取得首日資料。
+ratios, err := client.MarketData.DownloadMarginMaintenanceRatio(
+    civil.Date{Year: 2026, Month: time.August, Day: 3}, 1,
+)
+
+// 取得截至 2026/10/01 往前 60 個交易日的可用資料，包含 2026/08/03。
+ratios, err = client.MarketData.DownloadMarginMaintenanceRatio(
+    civil.Date{Year: 2026, Month: time.October, Day: 1}, 60,
+)
+```
+
+無效日期、早於首日的日期或非正數筆數會回傳錯誤。無資料時可用 `errors.Is(err, twstock.ErrNoData)` 判斷；日期超出 API 可查範圍時回傳 `twstock.ErrDateOutOffRange`。HTTP、JSON 與資料格式錯誤也會回傳 error。
+
 ## License
 
 [BSD-3-Clause](LICENSE)
