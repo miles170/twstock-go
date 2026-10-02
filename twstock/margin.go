@@ -2,10 +2,8 @@ package twstock
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/golang-sql/civil"
 	"github.com/shopspring/decimal"
@@ -23,26 +21,13 @@ type MarginMaintenanceRatio struct {
 // Data is available from 2026-08-03. The API may return fewer days when less data
 // is available. Ratio values are percentages, not fractions.
 func (s *MarketDataService) DownloadMarginMaintenanceRatio(date civil.Date, days int) ([]MarginMaintenanceRatio, error) {
-	minimumDate := civil.Date{Year: 2026, Month: time.August, Day: 3}
-	if !date.IsValid() || date.Before(minimumDate) {
-		return nil, fmt.Errorf("invalid margin maintenance ratio date: %s; earliest date is %s", date, minimumDate)
-	}
-	if days <= 0 {
-		return nil, fmt.Errorf("invalid trading days: %d; must be positive", days)
-	}
-
-	u, err := s.client.twseBaseURL.Parse(twseMarginMaintenanceRatioPath)
-	if err != nil {
+	if err := validateDashboardQuery(date, days); err != nil {
 		return nil, err
 	}
-	u.RawQuery = url.Values{
+	params := url.Values{
 		"response": {"json"},
 		"date":     {fmt.Sprintf("%04d%02d%02d", date.Year, date.Month, date.Day)},
 		"days":     {strconv.Itoa(days)},
-	}.Encode()
-	req, err := s.client.NewRequest(http.MethodGet, u.String(), nil)
-	if err != nil {
-		return nil, err
 	}
 	var resp struct {
 		Stat string `json:"stat"`
@@ -51,32 +36,26 @@ func (s *MarketDataService) DownloadMarginMaintenanceRatio(date civil.Date, days
 			KeepRate *decimal.Decimal `json:"keepRate"`
 		} `json:"data"`
 	}
-	if _, err := s.client.Do(req, &resp); err != nil {
+	if err := s.client.downloadDashboardJSON(s.client.twseBaseURL, twseMarginMaintenanceRatioPath, params, &resp); err != nil {
 		return nil, err
 	}
-	if resp.Stat != "OK" {
-		if isDateOutOfRangeStat(resp.Stat) {
-			return nil, ErrDateOutOffRange
-		}
-		if resp.Stat == "很抱歉，沒有符合條件的資料!" {
-			return nil, ErrNoData
-		}
-		return nil, fmt.Errorf("invalid margin maintenance ratio state: %s", resp.Stat)
+	if err := checkDashboardState(resp.Stat, "OK"); err != nil {
+		return nil, err
 	}
 	if len(resp.Data) == 0 {
 		return nil, ErrNoData
 	}
 	result := make([]MarginMaintenanceRatio, 0, len(resp.Data))
 	for _, row := range resp.Data {
-		parsedDate, err := time.Parse("20060102", row.Date)
+		parsedDate, err := parseDashboardDate(row.Date)
 		if err != nil {
-			return nil, fmt.Errorf("failed parsing margin maintenance ratio date: %w", err)
+			return nil, err
 		}
 		if row.KeepRate == nil {
 			return nil, fmt.Errorf("missing margin maintenance ratio for %s", row.Date)
 		}
 		result = append(result, MarginMaintenanceRatio{
-			Date:  civil.DateOf(parsedDate),
+			Date:  parsedDate,
 			Ratio: *row.KeepRate,
 		})
 	}
