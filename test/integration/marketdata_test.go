@@ -8,53 +8,62 @@ import (
 	"github.com/miles170/twstock-go/twstock"
 )
 
+// Query recent completed days so rolling upstream retention does not age out
+// a fixed historical test window. The APIs handle weekends and holidays.
+func dashboardQueryDate() civil.Date {
+	return civil.DateOf(time.Now().In(time.FixedZone("Asia/Taipei", 8*60*60)).AddDate(0, 0, -1))
+}
+
 func TestMarketData_DownloadMarginMaintenanceRatio(t *testing.T) {
+	date := dashboardQueryDate()
+	const days = 60
 	client := twstock.NewClient()
-	data, err := client.MarketData.DownloadMarginMaintenanceRatio(civil.Date{Year: 2026, Month: time.October, Day: 1}, 60)
+	data, err := client.MarketData.DownloadMarginMaintenanceRatio(date, days)
 	if err != nil {
 		t.Fatalf("DownloadMarginMaintenanceRatio returned error: %v", err)
 	}
-	if len(data) != 42 {
-		t.Fatalf("DownloadMarginMaintenanceRatio returned %d records, want 42", len(data))
+	// Exact dates and values are covered by fixture-based unit tests. Live
+	// dashboards may return fewer records as their available history changes.
+	if len(data) == 0 || len(data) > days {
+		t.Fatalf("got %d records, want between 1 and %d", len(data), days)
 	}
-	first := data[0]
-	if first.Date != (civil.Date{Year: 2026, Month: time.August, Day: 3}) || first.Ratio.String() != "178.76" {
-		t.Fatalf("first record = %+v, want 2026-08-03 with ratio 178.76", first)
-	}
-	last := data[len(data)-1]
-	if last.Date != (civil.Date{Year: 2026, Month: time.October, Day: 1}) || last.Ratio.String() != "195.28" {
-		t.Fatalf("last record = %+v, want 2026-10-01 with ratio 195.28", last)
+	for i, row := range data {
+		if !row.Date.IsValid() || row.Date.After(date) {
+			t.Errorf("record %d has invalid date %s for query ending %s", i, row.Date, date)
+		}
+		if i > 0 && !data[i-1].Date.Before(row.Date) {
+			t.Errorf("dates are not strictly increasing: %s, %s", data[i-1].Date, row.Date)
+		}
+		if !row.Ratio.IsPositive() {
+			t.Errorf("record %d has nonpositive ratio: %s", i, row.Ratio)
+		}
 	}
 }
 
 func TestMarketData_DownloadMarginBalance(t *testing.T) {
-	for _, tc := range []struct {
-		market      twstock.Market
-		count       int
-		firstDate   civil.Date
-		firstAmount string
-		firstLots   int
-		lastAmount  string
-		lastLots    int
-	}{
-		{twstock.TWSE, 60, civil.Date{Year: 2026, Month: time.July, Day: 7}, "610945256000", 213844, "629867193000", 233322},
-		{twstock.TPEx, 42, civil.Date{Year: 2026, Month: time.August, Day: 3}, "167008000000", 31855, "218872000000", 36462},
-	} {
-		t.Run(string(tc.market), func(t *testing.T) {
-			date := civil.Date{Year: 2026, Month: time.October, Day: 1}
-			data, err := twstock.NewClient().MarketData.DownloadMarginBalance(tc.market, date, 60)
+	date := dashboardQueryDate()
+	const days = 60
+	for _, market := range []twstock.Market{twstock.TWSE, twstock.TPEx} {
+		t.Run(string(market), func(t *testing.T) {
+			data, err := twstock.NewClient().MarketData.DownloadMarginBalance(market, date, days)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(data) != tc.count {
-				t.Fatalf("got %d records, want %d", len(data), tc.count)
+			// Availability and historical values can change upstream; exact
+			// parsing and unit conversions are covered by fixture-based tests.
+			if len(data) == 0 || len(data) > days {
+				t.Fatalf("got %d records, want between 1 and %d", len(data), days)
 			}
-			first, last := data[0], data[len(data)-1]
-			if first.Date != tc.firstDate || first.FinancingAmount.String() != tc.firstAmount || first.ShortSellingLots != tc.firstLots {
-				t.Errorf("unexpected first record: %+v", first)
-			}
-			if last.Date != date || last.FinancingAmount.String() != tc.lastAmount || last.ShortSellingLots != tc.lastLots {
-				t.Errorf("unexpected last record: %+v", last)
+			for i, row := range data {
+				if !row.Date.IsValid() || row.Date.After(date) {
+					t.Errorf("record %d has invalid date %s for query ending %s", i, row.Date, date)
+				}
+				if i > 0 && !data[i-1].Date.Before(row.Date) {
+					t.Errorf("dates are not strictly increasing: %s, %s", data[i-1].Date, row.Date)
+				}
+				if row.FinancingAmount.IsNegative() || row.ShortSellingLots < 0 {
+					t.Errorf("record %d has negative balances: %+v", i, row)
+				}
 			}
 		})
 	}
